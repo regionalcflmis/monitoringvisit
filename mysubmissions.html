@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b5cab">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  :root{--blue:#0b5cab;--blue-dark:#08427a;--green:#1a7f37;--red:#cf222e;--amber:#9a6700;--gray:#6e7781;--bg:#f4f6f9;--card:#fff;--border:#dde3ea;}
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);margin:0;color:#1f2328;}
+  .wrap{max-width:900px;margin:0 auto;padding:18px;}
+  h1{font-size:20px;color:var(--blue-dark);margin:8px 0 4px;font-weight:800;}
+  .sub{color:var(--gray);font-size:13px;margin-bottom:16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(16,24,40,.06);}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;}
+  .card h3{margin:0;font-size:15px;color:var(--blue-dark);}
+  .meta{font-size:12px;color:var(--gray);margin-top:4px;}
+  .grade-pill{display:inline-block;padding:2px 9px;border-radius:10px;font-weight:700;font-size:11px;color:#fff;background:var(--blue);}
+  .links a{color:var(--blue);text-decoration:none;font-weight:600;font-size:12.5px;margin-right:14px;}
+  .req-btn{background:#374151;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;}
+  .req-status{font-size:11.5px;margin-top:6px;color:var(--gray);}
+  .empty{color:var(--gray);padding:20px;text-align:center;}
+  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
+  .side-menu.open{transform:translateX(0);}
+  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;}
+  .side-menu a:hover{background:rgba(255,255,255,.08);}
+  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
+  .menu-overlay.open{display:block;}
+</style>
+
+<script src="api.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW registration failed:', e); });
+  });
+}
+</script>
+</head>
+<body>
+<div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
+    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+    <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Login Required</h2>
+    <input type="email" id="loginEmail" placeholder="aapka.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
+    <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
+  </div>
+</div>
+
+<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
+<div class="side-menu" id="sideMenu">
+  <a href="index.html">📋 Form Entry</a>
+  <a href="mysubmissions.html">📄 My Submissions</a>
+  <a href="#" onclick="logout_();return false;" style="color:#ffb4b4;">🚪 Logout</a>
+</div>
+
+<div class="wrap">
+  <h1>📄 My Submissions</h1>
+  <div class="sub">Sirf aapke khud ke submissions yahan dikhte hain</div>
+  <div id="list"><div class="empty">Loading...</div></div>
+</div>
+
+<script>
+var WEB_APP_URL = "index.html";
+function toggleMenu_() {
+  document.getElementById('sideMenu').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('open');
+}
+
+var myLoginId = '';
+
+// ---------------------------------------------------------------------
+// SESSION — login once, stays logged in across pages for 12 hours.
+// ---------------------------------------------------------------------
+var SESSION_KEY = 'cfl_session_v1';
+var SESSION_HOURS = 12;
+function loadSession_() {
+  try {
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (Date.now() - data.ts > SESSION_HOURS * 3600000) { localStorage.removeItem(SESSION_KEY); return null; }
+    return data;
+  } catch (e) { return null; }
+}
+function saveSession_(data) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ email: data.email, isAdmin: !!data.isAdmin, officerName: data.officerName || '', ts: Date.now() })); }
+  catch (e) {}
+}
+function logout_() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  if (WEB_APP_URL) { window.top.location.href = 'mysubmissions.html'; }
+  else { location.reload(); }
+}
+function tryResumeSession_() {
+  var sess = loadSession_();
+  if (!sess) return false;
+  myLoginId = sess.email.indexOf('NOLOGIN:') === 0 ? sess.email : sess.email;
+  document.getElementById('loginGate').style.display = 'none';
+  loadSubmissions_();
+  return true;
+}
+tryResumeSession_();
+
+function doLogin_() {
+  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var errEl = document.getElementById('loginError');
+  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!pattern.test(email)) { errEl.textContent = 'Sahi email daalein.'; return; }
+  errEl.style.color = '#6e7781';
+  errEl.textContent = 'Verify ho raha hai...';
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) {
+      errEl.style.color = '#cf222e';
+      errEl.textContent = 'Ye email registered nahi hai.';
+      return;
+    }
+    myLoginId = email;
+    saveSession_({ email: email, isAdmin: !!res.isAdmin, officerName: res.name || '' });
+    document.getElementById('loginGate').style.display = 'none';
+    loadSubmissions_();
+  }).withFailureHandler(function (err) {
+    errEl.style.color = '#cf222e';
+    errEl.textContent = 'Error: ' + (err.message || err);
+  }).checkLoginEmail(email);
+}
+
+function loadSubmissions_() {
+  google.script.run.withSuccessHandler(renderList_).withFailureHandler(function (err) {
+    document.getElementById('list').innerHTML = '<div class="empty">Error: ' + (err.message || err) + '</div>';
+  }).getMySubmissions(myLoginId);
+}
+
+function renderList_(list) {
+  var el = document.getElementById('list');
+  if (!list || !list.length) { el.innerHTML = '<div class="empty">Abhi tak koi submission nahi hai.</div>'; return; }
+  el.innerHTML = '';
+  list.forEach(function (s, i) {
+    var div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML =
+      '<div class="top"><div><h3>' + esc_(s.cflName) + ' — ' + esc_(s.reportType) + '</h3>' +
+      '<div class="meta">Visit Date: ' + esc_(s.visitDate) + ' · Score: ' + s.scorePct + '% · Grade <span class="grade-pill">' + esc_(s.grade) + '</span></div></div>' +
+      '<button class="req-btn" data-idx="' + i + '">✏️ Request Edit</button></div>' +
+      '<div class="links" style="margin-top:8px;">' +
+      (s.pdfLink ? '<a href="' + s.pdfLink + '" target="_blank">PDF</a>' : '') +
+      (s.excelLink ? '<a href="' + s.excelLink + '" target="_blank">Excel</a>' : '') + '</div>' +
+      '<div class="req-status" id="reqstatus' + i + '"></div>';
+    el.appendChild(div);
+  });
+  el.querySelectorAll('.req-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var idx = btn.getAttribute('data-idx');
+      var s = list[idx];
+      var reason = prompt('Kya edit karna hai, chhote me batayein (admin ko dikhega):');
+      if (reason === null) return;
+      var statusEl = document.getElementById('reqstatus' + idx);
+      statusEl.textContent = 'Bhej rahe hain...';
+      google.script.run.withSuccessHandler(function (res) {
+        statusEl.style.color = '#1a7f37';
+        statusEl.textContent = '✅ Request bhej di gayi (' + res.requestId + '). Admin approve karega.';
+      }).withFailureHandler(function (err) {
+        statusEl.style.color = '#cf222e';
+        statusEl.textContent = 'Error: ' + (err.message || err);
+      }).requestEditPermission(s.submissionId, s.reportType, reason, myLoginId);
+    });
+  });
+}
+
+function esc_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b5cab">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<script>
+  // Safety net: if ANY script error happens, show it on screen instead of
+  // leaving a blank page — makes "dashboard blank" diagnosable at a glance.
+  window.onerror = function (msg, url, line, col, err) {
+    try {
+      var show = function () {
+        var d = document.createElement('div');
+        d.style.cssText = 'background:#fee;color:#900;padding:12px 16px;font-family:monospace;font-size:12px;white-space:pre-wrap;border-bottom:2px solid #900;';
+        d.textContent = 'Dashboard JS Error: ' + msg + ' (line ' + line + ')';
+        document.body.insertBefore(d, document.body.firstChild);
+      };
+      if (document.body) show();
+      else document.addEventListener('DOMContentLoaded', show);
+    } catch (ignore) {}
+  };
+</script>
+<style>
+  :root{--blue:#0b5cab;--blue-dark:#08427a;--green:#1a7f37;--red:#cf222e;--amber:#9a6700;--gray:#6e7781;--bg:#f4f6f9;--card:#fff;--border:#dde3ea;}
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);margin:0;color:#1f2328;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px;}
+  h1{font-size:20px;color:var(--blue-dark);margin:8px 0 4px;font-weight:800;}
+  .sub{color:var(--gray);font-size:13px;margin-bottom:16px;}
+  .sub a{color:var(--blue);text-decoration:none;font-weight:600;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 1px 3px rgba(16,24,40,.06);}
+  .card h2{font-size:15px;margin:0 0 14px;color:var(--blue-dark);font-weight:700;}
+  .card h2 small{display:block;font-weight:400;color:var(--gray);font-size:11.5px;margin-top:2px;}
+  .toggle-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .toggle-row button{padding:10px 18px;border-radius:10px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-weight:700;cursor:pointer;font-size:13px;}
+  .toggle-row button.active{background:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(11,92,171,.3);}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+  .kpi .num{font-size:26px;font-weight:800;color:var(--blue);}
+  .kpi .lbl{font-size:11.5px;color:var(--gray);margin-top:3px;font-weight:600;}
+  .kpi.green .num{color:var(--green);}
+  .kpi.red .num{color:var(--red);}
+  .kpi.amber .num{color:var(--amber);}
+
+  .pie-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+  .pie-block{display:flex;align-items:center;gap:14px;background:#fbfcfe;border:1px solid var(--border);border-radius:12px;padding:12px;}
+  .pie-block svg{flex-shrink:0;}
+  .pie-legend{font-size:11.5px;line-height:1.7;}
+  .pie-legend-item{display:flex;align-items:center;gap:6px;}
+  .pie-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;display:inline-block;}
+  .pie-title{font-size:12px;font-weight:700;color:var(--blue-dark);margin-bottom:8px;}
+
+  .bar-chart{display:flex;align-items:flex-end;gap:22px;height:180px;padding:10px 6px 0;justify-content:center;}
+  .bar-chart-col{display:flex;flex-direction:column;align-items:center;gap:6px;width:70px;}
+  .bar-chart-bar{width:44px;border-radius:8px 8px 0 0;transition:.3s;min-height:2px;}
+  .bar-chart-val{font-size:13px;font-weight:800;color:#1f2328;}
+  .bar-chart-lbl{font-size:12px;font-weight:700;color:var(--gray);}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+  th{color:var(--gray);font-size:11px;text-transform:uppercase;position:sticky;top:0;background:#fff;}
+  .grade-pill{display:inline-block;padding:2px 9px;border-radius:10px;font-weight:700;font-size:11px;color:#fff;background:var(--blue);}
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
+  a.linkbtn{color:var(--blue);text-decoration:none;font-weight:600;font-size:12px;}
+  .empty{color:var(--gray);font-size:13px;padding:10px 0;}
+  .backlink{font-size:12px;}
+  @media (max-width:600px){
+    .wrap{padding:10px;}
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .toggle-row button{flex:1;padding:12px 8px;}
+    .pie-block{flex-direction:column;text-align:center;}
+    .bar-chart{gap:12px;}
+    .bar-chart-col{width:54px;}
+    .bar-chart-bar{width:34px;}
+  }
+</style>
+
+<style>
+  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
+  .side-menu.open{transform:translateX(0);}
+  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;border-left:3px solid transparent;}
+  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);border-left-color:#fff;}
+  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
+  .menu-overlay.open{display:block;}
+</style>
+
+<script src="api.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW registration failed:', e); });
+  });
+}
+</script>
+</head>
+<body>
+<div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
+    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+    <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Admin Login</h2>
+    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Dashboard sirf admin ke liye hai — apna email daalein</div>
+    <input type="email" id="loginEmail" placeholder="admin.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
+    <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
+  </div>
+</div>
+<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
+<div class="side-menu" id="sideMenu">
+  <a href="home.html">🏠 Home</a>
+  <a href="index.html">📋 Form Entry</a>
+  <a href="mysubmissions.html">📄 My Submissions</a>
+  <a href="dashboard.html" class="active">📊 Dashboard</a>
+  <a href="admin.html">⚙️ Admin Panel</a>
+  <a href="#" onclick="logout_();return false;" style="color:#ffb4b4;">🚪 Logout</a>
+</div>
+<div class="wrap">
+  <h1>MoneyWise CFL Monitoring Dashboard</h1>
+  <div class="sub">Indicator-wise &amp; Score (compliance)-wise summary &nbsp;·&nbsp; <a class="backlink" href="home.html">🏠 Home</a> &nbsp;·&nbsp; <a class="backlink" href="index.html">📋 Form</a></div>
+
+  <div class="toggle-row">
+    <button id="btnCFL" class="active" onclick="load('CFL')">CFL Monitoring (17 indicators)</button>
+    <button id="btnSESSION" onclick="load('SESSION')">Session Monitoring (14 indicators)</button>
+    <button onclick="load(currentType)" style="margin-left:auto;">🔄 Refresh</button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h2>Indicator-wise Compliance <small>Average score % across all visits, grouped for readability</small></h2>
+    <div class="pie-row" id="indicatorPies"><div class="empty">Loading...</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Grading System <small>Number of visits by grade (A / B / C / D)</small></h2>
+    <div id="gradeBarChart"></div>
+  </div>
+
+  <div class="card">
+    <h2>Visit-wise Report <small>Latest first</small></h2>
+    <div class="tbl-wrap">
+      <table id="visitTable">
+        <thead>
+          <tr><th>Visit Date</th><th>CFL</th><th>District</th><th>Officer</th><th>Score</th><th>Score %</th><th>Grade</th><th>TAT</th><th>PDF</th><th>Excel</th></tr>
+        </thead>
+        <tbody id="visitTbody"><tr><td colspan="10" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+var currentType = 'CFL';
+
+function load(type) {
+  currentType = type;
+  document.getElementById('btnCFL').classList.toggle('active', type === 'CFL');
+  document.getElementById('btnSESSION').classList.toggle('active', type === 'SESSION');
+  document.getElementById('indicatorPies').innerHTML = '<div class="empty">Loading...</div>';
+  document.getElementById('visitTbody').innerHTML = '<tr><td colspan="10" class="empty">Loading...</td></tr>';
+  google.script.run.withSuccessHandler(render).withFailureHandler(showErr).getDashboardData(type);
+}
+
+function showErr(err) {
+  document.getElementById('indicatorPies').innerHTML = '<div class="empty">Error: ' + (err.message || err) + '</div>';
+}
+
+function render(d) {
+  if (!d) { showErr({message:'No data returned'}); return; }
+  renderKpis(d.summary);
+  renderIndicatorPies(d.indicatorStats);
+  renderGradeBarChart(d.summary.grades, d.summary.totalVisits);
+  renderTable(d.rows);
+}
+
+function renderKpis(s) {
+  var t = s.tat || { Green: 0, Red: 0, Pending: 0 };
+  document.getElementById('kpis').innerHTML =
+    kpi(s.totalVisits, 'Total Visits', '') +
+    kpi(s.avgScorePct + '%', 'Avg Score %', '') +
+    kpi(t.Green, 'TAT Green', 'green') +
+    kpi(t.Red, 'TAT Red', 'red') +
+    kpi(t.Pending, 'TAT Pending', 'amber');
+}
+function kpi(num, lbl, cls) {
+  return '<div class="kpi ' + cls + '"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
+}
+
+// ---- Indicator-wise compliance as 2-3 pie charts (grouped for readability) ----
+function renderIndicatorPies(stats) {
+  var c = document.getElementById('indicatorPies');
+  if (!stats.length || !stats[0].count) {
+    c.innerHTML = '<div class="empty">Abhi tak koi submission nahi hai is report type ke liye.</div>';
+    return;
+  }
+  var numGroups = stats.length > 12 ? 3 : 2;
+  var groupSize = Math.ceil(stats.length / numGroups);
+  var groups = [];
+  for (var i = 0; i < stats.length; i += groupSize) groups.push(stats.slice(i, i + groupSize));
+
+  c.innerHTML = '';
+  groups.forEach(function (g, gi) {
+    var wrap = document.createElement('div');
+    var firstSr = g[0].sr, lastSr = g[g.length - 1].sr;
+    var pieData = g.map(function (s, i) {
+      return { label: 'Sr' + s.sr + ' ' + s.text, value: Math.max(s.avgPct, 0.1), color: distinctColor_(i) };
+    });
+    wrap.innerHTML = '<div class="pie-title">Indicators Sr' + firstSr + '–' + lastSr + '</div>' + pieSvg_(pieData);
+    c.appendChild(wrap);
+  });
+}
+
+// A fixed palette of visually distinct colors, one per pie slice — cycles
+// if a group has more indicators than colors.
+var PIE_PALETTE = ['#0b5cab', '#1a7f37', '#cf222e', '#9a6700', '#8250df', '#0969da',
+  '#bf3989', '#1b7c83', '#c4380d', '#4a5568', '#2da44e', '#a40e26'];
+function distinctColor_(i) { return PIE_PALETTE[i % PIE_PALETTE.length]; }
+
+function pieSvg_(data) {
+  var total = data.reduce(function (s, d) { return s + d.value; }, 0) || 1;
+  var cx = 60, cy = 60, r = 55, startAngle = -90, paths = '';
+  data.forEach(function (d) {
+    var angle = (d.value / total) * 360;
+    var endAngle = startAngle + angle;
+    var large = angle > 180 ? 1 : 0;
+    var x1 = cx + r * Math.cos(startAngle * Math.PI / 180), y1 = cy + r * Math.sin(startAngle * Math.PI / 180);
+    var x2 = cx + r * Math.cos(endAngle * Math.PI / 180), y2 = cy + r * Math.sin(endAngle * Math.PI / 180);
+    var d0 = data.length === 1 ?
+      ('M' + cx + ',' + cy + ' m -' + r + ',0 a ' + r + ',' + r + ' 0 1,0 ' + (r * 2) + ',0 a ' + r + ',' + r + ' 0 1,0 -' + (r * 2) + ',0') :
+      ('M' + cx + ',' + cy + ' L' + x1 + ',' + y1 + ' A' + r + ',' + r + ' 0 ' + large + ' 1 ' + x2 + ',' + y2 + ' Z');
+    paths += '<path d="' + d0 + '" fill="' + d.color + '" stroke="#fff" stroke-width="1.5"><title>' +
+      escXml_(d.label) + ': ' + d.value.toFixed(1) + '%</title></path>';
+    startAngle = endAngle;
+  });
+  var legend = data.map(function (d) {
+    return '<div class="pie-legend-item"><span class="pie-dot" style="background:' + d.color + '"></span>' +
+      escXml_(d.label.length > 42 ? d.label.substring(0, 42) + '…' : d.label) + ' — ' + d.value.toFixed(0) + '%</div>';
+  }).join('');
+  return '<div class="pie-block"><svg viewBox="0 0 120 120" width="120" height="120">' + paths + '</svg>' +
+    '<div class="pie-legend">' + legend + '</div></div>';
+}
+
+function escXml_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ---- Grading system as a vertical bar chart ----
+function renderGradeBarChart(grades, total) {
+  var c = document.getElementById('gradeBarChart');
+  if (!total) { c.innerHTML = '<div class="empty">Abhi tak koi submission nahi hai.</div>'; return; }
+  var order = [['A', '#1a7f37'], ['B', '#0b5cab'], ['C', '#9a6700'], ['D', '#cf222e']];
+  var maxN = Math.max.apply(null, order.map(function (o) { return grades[o[0]] || 0; })) || 1;
+  var html = '<div class="bar-chart">';
+  order.forEach(function (o) {
+    var n = grades[o[0]] || 0;
+    var h = Math.round((n / maxN) * 140) + (n > 0 ? 6 : 0);
+    html += '<div class="bar-chart-col">' +
+      '<div class="bar-chart-val">' + n + '</div>' +
+      '<div class="bar-chart-bar" style="height:' + h + 'px;background:' + o[1] + '"></div>' +
+      '<div class="bar-chart-lbl">Grade ' + o[0] + '</div></div>';
+  });
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+function renderTable(rows) {
+  var tb = document.getElementById('visitTbody');
+  if (!rows.length) { tb.innerHTML = '<tr><td colspan="10" class="empty">Abhi tak koi submission nahi hai.</td></tr>'; return; }
+  tb.innerHTML = '';
+  rows.forEach(function (r) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + (r.visitDate || '-') + '</td>' +
+      '<td>' + esc_(r.cflName) + '</td>' +
+      '<td>' + esc_(r.district) + '</td>' +
+      '<td>' + esc_(r.officerName) + '</td>' +
+      '<td>' + r.totalScore + '/' + r.maxScore + '</td>' +
+      '<td>' + r.pct + '%</td>' +
+      '<td><span class="grade-pill">' + r.grade + '</span></td>' +
+      '<td>🟢' + r.tatGreen + ' 🔴' + r.tatRed + ' ⏳' + r.tatPending + '</td>' +
+      '<td>' + (r.pdfLink ? '<a class="linkbtn" href="' + r.pdfLink + '" target="_blank">PDF</a>' : '-') + '</td>' +
+      '<td>' + (r.excelLink ? '<a class="linkbtn" href="' + r.excelLink + '" target="_blank">Excel</a>' : '-') + '</td>';
+    tb.appendChild(tr);
+  });
+}
+
+function esc_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+tryResumeSession_(true); // resumes an existing admin session, or leaves the login gate showing
+</script>
+
+<script>
+function toggleMenu_() {
+  document.getElementById('sideMenu').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('open');
+}
+</script>
+
+<script>
+var WEB_APP_URL = "index.html";
+// ---------------------------------------------------------------------
+// SESSION — login once, stays logged in across pages for 12 hours.
+// ---------------------------------------------------------------------
+var SESSION_KEY = 'cfl_session_v1';
+var SESSION_HOURS = 12;
+function loadSession_() {
+  try {
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (Date.now() - data.ts > SESSION_HOURS * 3600000) { localStorage.removeItem(SESSION_KEY); return null; }
+    return data;
+  } catch (e) { return null; }
+}
+function saveSession_(data) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ email: data.email, isAdmin: !!data.isAdmin, officerName: data.officerName || '', ts: Date.now() })); }
+  catch (e) {}
+}
+function logout_() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  if (WEB_APP_URL) { window.top.location.href = 'dashboard.html'; }
+  else { location.reload(); }
+}
+function tryResumeSession_(requireAdmin) {
+  var sess = loadSession_();
+  if (!sess) return false;
+  if (requireAdmin && !sess.isAdmin) return false;
+  document.getElementById('loginGate').style.display = 'none';
+  load('CFL');
+  return true;
+}
+
+function doLogin_() {
+  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var errEl = document.getElementById('loginError');
+  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!pattern.test(email)) { errEl.textContent = 'Sahi email daalein.'; return; }
+  errEl.style.color = '#6e7781';
+  errEl.textContent = 'Verify ho raha hai...';
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok || !res.isAdmin) {
+      errEl.style.color = '#cf222e';
+      errEl.textContent = 'Dashboard sirf admin ke liye hai. Aap Form Entry use karein.';
+      return;
+    }
+    saveSession_({ email: email, isAdmin: !!res.isAdmin, officerName: res.name || '' });
+    document.getElementById('loginGate').style.display = 'none';
+    load('CFL');
+  }).withFailureHandler(function (err) {
+    errEl.style.color = '#cf222e';
+    errEl.textContent = 'Error: ' + (err.message || err);
+  }).checkLoginEmail(email);
+}
+</script>
+</body>
+</html>

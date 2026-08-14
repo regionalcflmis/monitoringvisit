@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b5cab">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CFL Monitoring">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{--blue:#0b5cab;--blue-dark:#08427a;--green:#1a7f37;--red:#cf222e;--amber:#9a6700;--gray:#6e7781;--bg:#f4f6f9;--card:#fff;--border:#d8dee4;}
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);margin:0;padding:0;color:#1f2328;-webkit-text-size-adjust:100%;}
+  .wrap{max-width:1400px;margin:0 auto;padding:16px 28px;}
+  h1{font-size:20px;color:var(--blue-dark);margin:14px 0 4px;font-weight:800;}
+  .sub{color:var(--gray);font-size:13px;margin-bottom:16px;}
+  .sub a{color:var(--blue);text-decoration:none;font-weight:600;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(16,24,40,.06);}
+  .card h2{font-size:15px;margin:0 0 14px;color:var(--blue-dark);display:flex;align-items:center;gap:8px;}
+  .card h2 .num{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;}
+  label{display:block;font-size:12.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+  input,select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:var(--blue);}
+  textarea{min-height:56px;resize:vertical;}
+  .readonly{background:#f0f2f5;color:#4b5563;}
+  .toggle-row{display:flex;gap:8px;margin-bottom:16px;}
+  .toggle-row button{flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;transition:.15s;}
+  .toggle-row button.active{background:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(11,92,171,.35);}
+  .lang-btn{padding:5px 12px;border-radius:8px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-weight:700;font-size:12px;cursor:pointer;}
+  .lang-btn.active{background:var(--blue);color:#fff;}
+  .filter-box{margin-bottom:6px;background:#fffdf3;border-color:#f0d98c;}
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b5cab' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:32px;}
+
+  #itemsContainer{column-count:2;column-gap:16px;}
+  .item{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;display:inline-block;width:100%;margin-bottom:16px;vertical-align:top;}
+  .item{border:1px solid var(--border);border-radius:12px;padding:16px;background:#fff;}
+  .item-subhead{font-weight:800;font-size:14px;color:var(--blue-dark);margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 8px;}
+  .item-subhead .sr-badge{background:var(--blue);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;align-self:center;}
+  .item-subhead .head-en{font-size:14px;}
+  .item-subhead .head-hi{font-size:12.5px;font-weight:600;color:#4b5f7a;}
+  .item-subhead .head-hi:not(:empty)::before{content:"/ ";color:#9aa7b5;font-weight:400;}
+  .item-full{white-space:normal;font-size:12.5px;color:#374151;line-height:1.6;background:#f7f9fc;border-left:3px solid var(--blue);padding:10px 12px;border-radius:0 6px 6px 0;margin-bottom:14px;}
+  .item-full .guide-line{margin-bottom:4px;}
+  .guide-points-wrap{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:4px;}
+  .item-full .guide-point{display:inline-block;background:#eef3fa;border-radius:6px;padding:3px 9px;white-space:normal;}
+  .point-list{background:#f7f9fc;border-left:3px solid var(--blue);border-radius:0 6px 6px 0;padding:9px 11px;margin-bottom:12px;}
+  .point-row{display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:12.5px;color:#374151;line-height:1.4;}
+  .point-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin-top:1px;accent-color:var(--blue);}
+  .point-row span{flex:1;}
+
+  .field-block{margin-bottom:14px;}
+  .obs-sug-row{display:grid;grid-template-columns:0.8fr 1.4fr 1.4fr 1fr;gap:10px;}
+  .obs-sug-row .field-block{margin-bottom:0;}
+  @media (max-width:640px){
+    .obs-sug-row{grid-template-columns:1fr;}
+  }
+  .field-block:last-child{margin-bottom:0;}
+
+  .tick-group{display:flex;flex-wrap:wrap;gap:6px;}
+  .tick-btn{flex:1;min-width:70px;padding:9px 6px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:#374151;font-size:13px;font-weight:600;cursor:pointer;transition:.12s;text-align:center;}
+  .tick-btn:hover{border-color:var(--blue);}
+  .tick-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 5px rgba(11,92,171,.3);}
+  .tick-btn.active.no{background:var(--red);border-color:var(--red);}
+  .score-live{margin-top:8px;font-size:12.5px;font-weight:600;color:#374151;background:#eef4fb;border-radius:6px;padding:6px 10px;display:inline-block;}
+  .score-live b{color:var(--blue-dark);font-size:14px;}
+
+  .staffing-block{background:#fbfbf6;border:1px dashed #e0d9a8;border-radius:8px;padding:12px;margin:4px 0 14px;}
+  .staffing-block > label{margin-bottom:8px;display:block;}
+  .staffing-table{width:100%;border-collapse:collapse;min-width:480px;font-size:11.5px;}
+  .staffing-table th{background:#f0ead0;color:#5c4d10;padding:6px 8px;text-align:center;font-weight:700;}
+  .staffing-table td{padding:6px 8px;text-align:center;border-bottom:1px solid #eee0ad;}
+  .staffing-table td.staff-name{font-weight:700;color:#374151;text-align:left;}
+  .staffing-table input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);}
+  .staffing-table input[type=date]{width:120px;padding:4px;font-size:11px;}
+  .days-vacant{font-size:10px;color:var(--red);margin-top:2px;font-weight:600;}
+
+  .photo-zone{border:2px dashed var(--border);border-radius:10px;padding:18px;text-align:center;cursor:pointer;color:var(--gray);font-size:13px;background:#fafbfc;margin-bottom:10px;}
+  .photo-zone.selfie-zone{border-color:#c9a8f5;background:#faf7ff;color:#6b3fa0;}
+  .photo-zone.selfie-zone:hover{border-color:#8250df;}
+  .thumb.selfie-thumb{border:2px solid #8250df;}
+  .thumb .selfie-badge{position:absolute;bottom:2px;left:2px;background:#8250df;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;}
+  .photo-zone:hover{border-color:var(--blue);color:var(--blue);}
+  .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .thumb{position:relative;width:82px;height:82px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+  .thumb img{width:100%;height:100%;object-fit:cover;}
+  .thumb .rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;}
+
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:10px;}
+  table.fu-table{width:100%;border-collapse:collapse;min-width:760px;font-size:12px;}
+  .fu-table th{background:var(--blue);color:#fff;padding:8px;text-align:left;font-size:11px;position:sticky;top:0;}
+  .fu-table td{padding:8px;border-bottom:1px solid var(--border);vertical-align:top;}
+  .fu-table tr:nth-child(even) td{background:#fafbfc;}
+  .fu-table .fu-head{font-weight:700;color:var(--blue-dark);width:150px;}
+  .fu-table .fu-readonly{color:#4b5563;white-space:pre-wrap;max-width:190px;}
+  .fu-table input[type=date]{padding:6px;font-size:12px;width:120px;}
+  .tat-badge{display:inline-block;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;}
+  .tat-Green{background:var(--green);} .tat-Red{background:var(--red);} .tat-Pending{background:var(--gray);}
+
+  .submit-bar{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 -2px 10px rgba(16,24,40,.08);border-radius:0;}
+  .submit-bar button{background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;border:none;padding:13px 26px;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;}
+  .submit-bar button:disabled{opacity:.6;}
+  .msg{font-size:13px;}
+  .err{color:var(--red);font-weight:600;}
+  .ok{color:var(--green);font-weight:600;}
+  #previewModal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:50;}
+  #previewBox{background:#fff;max-width:700px;margin:3% auto;padding:22px;border-radius:14px;text-align:center;max-height:92vh;overflow:auto;}
+  #previewBox a{display:inline-block;margin:8px;padding:11px 18px;background:var(--blue);color:#fff;text-decoration:none;border-radius:8px;font-weight:600;}
+  .hint{font-size:11px;color:var(--gray);margin-top:5px;}
+  .req::after{content:" *";color:var(--red);}
+
+  @media (max-width:820px){
+    #itemsContainer{column-count:1;}
+  }
+  @media (max-width:600px){
+    .wrap{padding:10px;padding-bottom:84px;}
+    h1{font-size:17px;}
+    .card{padding:13px;border-radius:10px;}
+    .toggle-row{flex-direction:column;}
+    .toggle-row button{padding:14px;font-size:14px;}
+    .grid{grid-template-columns:1fr;}
+    #itemsContainer{column-count:1;}
+    input,select,textarea{padding:12px 10px;font-size:16px;}
+    select{background-size:18px;padding-right:34px;}
+    label{font-size:13px;margin-bottom:6px;}
+    .item-full{font-size:13px;line-height:1.5;}
+    .point-row{font-size:13px;}
+    .point-row input[type=checkbox]{width:21px;height:21px;}
+    .item-subhead{font-size:14px;}
+    .tick-btn{min-width:60px;padding:11px 6px;font-size:13px;}
+    .submit-bar{position:fixed;left:0;right:0;bottom:0;padding:10px;flex-direction:column;gap:6px;z-index:10;}
+    .submit-bar button{width:100%;padding:14px;font-size:15px;}
+    .thumb{width:70px;height:70px;}
+    #previewBox{margin:12% 10px;padding:16px;}
+    #previewBox a{display:block;margin:8px 0;}
+  }
+</style>
+
+<style>
+  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
+  .side-menu.open{transform:translateX(0);}
+  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;border-left:3px solid transparent;}
+  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);border-left-color:#fff;}
+  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
+  .menu-overlay.open{display:block;}
+</style>
+
+<script src="api.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW registration failed:', e); });
+  });
+}
+</script>
+</head>
+<body>
+<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
+<div class="side-menu" id="sideMenu">
+  <a href="home.html">🏠 Home</a>
+  <a href="index.html" class="active">📋 Form Entry</a>
+  <a href="mysubmissions.html">📄 My Submissions</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+  <a href="admin.html">⚙️ Admin Panel</a>
+  <a href="#" onclick="logout_();return false;" style="color:#ffb4b4;">🚪 Logout</a>
+</div>
+<div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
+    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+    <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Login Required</h2>
+    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Aage badhne ke liye apna email daalein</div>
+    <input type="email" id="loginEmail" placeholder="aapka.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
+    <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login &amp; Continue</button>
+
+    <div id="noEmailToggle" style="margin-top:14px;font-size:12px;">
+      <a href="#" onclick="showNoEmailLogin_();return false;" style="color:#6e7781;text-decoration:underline;">Email nahi hai? Yahan click karein</a>
+    </div>
+    <div id="noEmailBox" style="display:none;margin-top:12px;padding-top:14px;border-top:1px solid #eee;text-align:left;">
+      <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Apna naam select karein</label>
+      <select id="exemptName" style="width:100%;padding:10px;border:1px solid #d8dee4;border-radius:8px;font-size:14px;margin-bottom:10px;"><option value="">-- Naam select karein --</option></select>
+      <button onclick="doExemptLogin_()" style="width:100%;padding:12px;background:#374151;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">Continue without email</button>
+      <div style="font-size:11px;color:#9aa7b5;margin-top:8px;">Sirf un officers ke liye kaam karega jinhe admin ne "bina email" allow kiya hai.</div>
+    </div>
+  </div>
+</div>
+<div class="wrap">
+  <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px;">
+    <button id="langEN" class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button id="langHI" class="lang-btn" onclick="setLang('hi')">हिं</button>
+  </div>
+  <h1 data-i18n="appTitle">MoneyWise CFL Monitoring Visit Form</h1>
+  <div class="sub"><span data-i18n="appSubtitle">CFL Monitoring (17 indicators) &amp; Session Quality Monitoring (14 indicators) — MoneyWise CFL Project</span>
+    &nbsp;·&nbsp; <a href="dashboard.html" target="_blank">📊 <span data-i18n="dashboardLink">View Dashboard</span></a>
+    &nbsp;·&nbsp; <a href="home.html">🏠 <span data-i18n="homeLink">Home</span></a>
+  </div>
+  <div class="sub" id="loggedInUserBar" style="font-size:11.5px;"></div>
+  <div id="approvedEditBanner" style="display:none;background:#fff8e1;border:1px solid #f0c766;color:#7a5b00;padding:10px 14px;border-radius:8px;font-size:12.5px;margin-bottom:10px;"></div>
+  <div id="editModeBanner" style="display:none;background:#e8f0fb;border:1px solid #8fb8e8;color:#08427a;padding:10px 14px;border-radius:8px;font-size:12.5px;font-weight:700;margin-bottom:10px;">✏️ Edit Mode — Submission <span id="editModeSubmissionId"></span> ko update kar rahe hain (naya submission nahi banega)</div>
+
+  <div class="toggle-row">
+    <button id="btnCFL" class="active" onclick="setReportType('CFL')">🏢 <span data-i18n="toggleCfl">CFL Monitoring Visit</span></button>
+    <button id="btnSESSION" onclick="setReportType('SESSION')">🎓 <span data-i18n="toggleSession">Session Monitoring</span></button>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">1</span><span data-i18n="section1">Visit Details</span></h2>
+    <div class="grid">
+      <div>
+        <label class="req" data-i18n="fBcc">Select BCC Code</label>
+        <input id="bccSearch" class="filter-box" data-i18n-ph="fBccSearch" placeholder="🔍 Search BCC Code or CFL name" oninput="filterSelect('bccSearch','bccCode')">
+        <select id="bccCode" onchange="onBccChange()">
+          <option value="" data-i18n="fBccOpt">-- BCC Code select karein --</option>
+        </select>
+      </div>
+      <div><label data-i18n="fCfl">CFL Name</label><input id="cflName" class="readonly" readonly></div>
+      <div><label data-i18n="fBccDisplay">BCC Code</label><input id="bccCodeDisplay" class="readonly" readonly></div>
+      <div><label data-i18n="fDistrict">District</label><input id="district" class="readonly" readonly></div>
+      <div><label data-i18n="fState">State</label><input id="state" class="readonly" readonly></div>
+      <div><label data-i18n="fBank">Bank Name</label><input id="bankName" class="readonly" readonly></div>
+      <div><label data-i18n="fPhase">Phase</label><input id="phase" class="readonly" readonly></div>
+      <div><label data-i18n="fBaseBlock">Base Block</label><input id="baseBlock" class="readonly" readonly></div>
+      <div>
+        <label data-i18n="fAdjBlock">Adjacent Block</label>
+        <select id="adjBlock"></select>
+      </div>
+      <div><label class="req" data-i18n="fVisitDate">Visit Date</label><input type="date" id="visitDate"></div>
+      <div>
+        <label class="req" data-i18n="fOfficer">Officer Name</label>
+        <select id="officerName" onchange="onOfficerChange()">
+          <option value="" data-i18n="fOfficerOpt">-- Officer select karein --</option>
+        </select>
+      </div>
+      <div><label class="req" data-i18n="fDesignation">Designation</label><input id="officerDesignation" class="readonly" readonly></div>
+      <div id="consultantWrap" style="display:none"><label data-i18n="fConsultant">Designation of Consultant Staff</label><input id="consultantDesignation"></div>
+    </div>
+    <div id="sessionOnlyFields" class="grid" style="display:none;margin-top:10px;">
+      <div><label data-i18n="fObserver">Name &amp; Designation of Session Observer / Stakeholders</label><input id="sessionObserver"></div>
+      <div>
+        <label data-i18n="fSessionType">Type of Session</label>
+        <select id="sessionType">
+          <option>AVT</option><option>FBT</option><option>AWC</option>
+          <option>Games</option><option>Calendar Roll</option><option>CFL</option><option>Lecturer</option>
+        </select>
+      </div>
+      <div><label data-i18n="fVenue">Where is the session being observed</label><input id="sessionVenue" placeholder="Base/Adjacent Block, Village, CFL, virtual..."></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span><span id="checklistTitle" data-i18n="checklistCfl">CFL Reporting Format — 17 Indicators</span></h2>
+    <div id="itemsContainer"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span><span data-i18n="section3">Follow-up on Previous Visit Observations &amp; Stakeholder Feedback Status</span></h2>
+    <div class="hint" id="fuHint" data-i18n="fuHint" style="margin-bottom:12px;">CFL select karte hi pichli visit ka data yaha apne aap aa jaayega.</div>
+    <div class="tbl-wrap">
+      <table class="fu-table">
+        <thead>
+          <tr>
+            <th data-i18n="fuSr">Sr</th><th data-i18n="fuIndicator">Indicator</th>
+            <th data-i18n="fuLastObs">Last Month Observation</th><th data-i18n="fuLastSug">Last Month Suggestion</th>
+            <th data-i18n="fuLastTl">Last Month Timeline</th><th data-i18n="fuCompletion">Completion Date</th><th data-i18n="fuTat">TAT</th>
+          </tr>
+        </thead>
+        <tbody id="fuTbody"><tr><td colspan="7" style="padding:12px;color:#6e7781;" data-i18n="fuSelectCfl">CFL select karein.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">4</span><span data-i18n="section4">Photos (Geotagged) — minimum 2 required</span></h2>
+    <div class="hint" id="locStatus" data-i18n="locStatusChecking">📍 Location check ho rahi hai...</div>
+    <div class="photo-zone" onclick="openLiveCamera_('photoInput')">
+      📷 <span data-i18n="photoHint">Live camera se photo lene ke liye tap karein (gallery se upload nahi hoga)</span>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotos(event)">
+    <div class="photo-zone selfie-zone" onclick="openLiveCamera_('selfieInput')">
+      🤳 <span data-i18n="selfieHint">Take Selfie — live front camera se selfie lein</span>
+    </div>
+    <input type="file" id="selfieInput" accept="image/*" capture="user" multiple style="display:none" onchange="handlePhotos(event)">
+    <div class="hint" data-i18n="locationNote">📍 Browser location permission maang sakta hai — "Allow" karein. Ye visit location confirm karne ke liye zaroori hai.</div>
+    <div class="thumbs" id="thumbGallery"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">5</span><span data-i18n="section5">Sign-off</span></h2>
+    <div class="grid">
+      <div>
+        <label class="req" data-i18n="fSignName">Name</label>
+        <input id="signOffName" class="readonly" readonly>
+      </div>
+      <div><label data-i18n="fDesignation">Designation</label><input id="signOffDesig" class="readonly" readonly></div>
+      <div><label data-i18n="fDistrict">District</label><input id="signOffDistrict" class="readonly" readonly></div>
+      <div><label data-i18n="fZone">Zone</label><input id="signOffZone" class="readonly" readonly></div>
+    </div>
+  </div>
+</div>
+
+<div class="submit-bar">
+  <button id="submitBtn" onclick="doSubmit()">✅ <span data-i18n="submitBtn">Submit &amp; Send Report</span></button>
+  <span class="msg" id="statusMsg"></span>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h2 style="font-size:15px;">✏️ Apne Purane Submissions Edit Karein</h2>
+  <div class="sub" style="margin-bottom:10px;">Kisi purane submission me galti sudharni ho to yaha se edit request bhej sakte hain</div>
+  <div id="bottomSubmissionsList"><div class="sub">Login karne ke baad yahan aapke submissions dikhenge.</div></div>
+</div>
+
+<div id="previewModal">
+  <div id="previewBox">
+    <h3>Report Submitted ✅</h3>
+    <div id="previewSummary"></div>
+    <div>
+      <a id="pdfLink" target="_blank">Download PDF</a>
+      <a id="excelLink" target="_blank">Download Excel</a>
+    </div>
+    <div id="reportPreviewWrap" style="text-align:left;border:1px solid #d0d7de;border-radius:8px;margin-top:12px;max-height:60vh;overflow:auto;background:#fff;"></div>
+    <div><button onclick="reloadForm_()">Close &amp; Start New Entry</button></div>
+    <div class="hint" id="autoRefreshHint"></div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// Language toggle (English / Hindi) for all static UI chrome. Indicator
+// headings/guidance text stay in English — that's the official checklist
+// wording and should not be altered/translated.
+// ---------------------------------------------------------------------
+var currentLang = 'en';
+var STR = {
+  en: {
+    appTitle: 'MoneyWise CFL Monitoring Visit Form',
+    appSubtitle: 'CFL Monitoring (17 indicators) & Session Quality Monitoring (14 indicators) — MoneyWise CFL Project',
+    dashboardLink: 'View Dashboard', homeLink: 'Home',
+    toggleCfl: 'CFL Monitoring Visit (17 indicators)',
+    toggleSession: 'Session Monitoring (14 indicators)',
+    section1: 'Visit Details',
+    section3: 'Follow-up on Previous Visit Observations & Stakeholder Feedback Status',
+    section4: 'Photos (Geotagged) — minimum 2 required',
+    section5: 'Sign-off',
+    checklistCfl: 'CFL Reporting Format — 17 Indicators',
+    checklistSession: 'Session Monitoring Report — 14 Indicators',
+    fBcc: 'Select BCC Code', fBccSearch: 'Search BCC Code or CFL name', fBccOpt: '-- BCC Code select karein --',
+    fCfl: 'CFL Name', fBccDisplay: 'BCC Code', fDistrict: 'District', fState: 'State', fBank: 'Bank Name', fPhase: 'Phase',
+    fBaseBlock: 'Base Block', fAdjBlock: 'Adjacent Block', fVisitDate: 'Visit Date',
+    fOfficer: 'Officer Name', fOfficerOpt: '-- Officer select karein --', fDesignation: 'Designation',
+    fPin: 'PIN (if set)',
+    fConsultant: 'Designation of Consultant Staff', fObserver: 'Name & Designation of Session Observer / Stakeholders',
+    fSessionType: 'Type of Session', fVenue: 'Where is the session being observed',
+    fuSr: 'Sr', fuIndicator: 'Indicator', fuLastObs: 'Last Month Observation', fuLastSug: 'Last Month Suggestion',
+    fuLastTl: 'Last Month Timeline', fuCompletion: 'Completion Date', fuTat: 'TAT', fuSelectCfl: 'CFL select karein.',
+    photoHint: 'Click / tap yaha photo select karne ke liye (camera se geotag on rakhein)',
+    locationNote: '📍 The browser may ask for location permission — please Allow. This confirms the visit location.',
+    selfieHint: 'Take Selfie — live front camera',
+    fSignName: 'Name', fSignOpt: '-- Name select karein --', fZone: 'Zone',
+    submitBtn: 'Submit & Send Report',
+    score: 'Score', observation: 'Observation', suggestion: 'Suggestion Recommended', timelineDate: 'Time Line Date',
+    scoreHintBinary: 'Type 1 for Yes, 0 for No.', scoreHintScale: 'Type a score from 0 to {max} based on the question.',
+    staffingLabel: 'Staffing Details — tick applicable for each staff (one or more allowed)',
+    staffingStaff: 'Staff', staffOnboarded: 'Onboarded', staffTraining: 'Attended Training',
+    staffVacantSince: 'Vacant Since (date)', staffCvInterview: 'CV/Interview Done', staffVacant: 'Vacant'
+  },
+  hi: {
+    appTitle: 'मनीवाइज़ सीएफएल मॉनिटरिंग विज़िट फॉर्म',
+    appSubtitle: 'सीएफएल मॉनिटरिंग (17 इंडिकेटर) और सेशन क्वालिटी मॉनिटरिंग (14 इंडिकेटर) — मनीवाइज़ सीएफएल प्रोजेक्ट',
+    dashboardLink: 'डैशबोर्ड देखें', homeLink: 'होम',
+    toggleCfl: 'सीएफएल मॉनिटरिंग विज़िट (17 इंडिकेटर)',
+    toggleSession: 'सेशन मॉनिटरिंग (14 इंडिकेटर)',
+    section1: 'विज़िट विवरण',
+    section3: 'पिछली विज़िट के ऑब्ज़र्वेशन और स्टेकहोल्डर फीडबैक की फॉलो-अप स्थिति',
+    section4: 'फोटो (जियोटैग्ड) — कम से कम 2 ज़रूरी',
+    section5: 'साइन-ऑफ',
+    checklistCfl: 'सीएफएल रिपोर्टिंग फॉर्मेट — 17 इंडिकेटर',
+    checklistSession: 'सेशन मॉनिटरिंग रिपोर्ट — 14 इंडिकेटर',
+    fBcc: 'BCC कोड चुनें', fBccSearch: 'BCC कोड या CFL नाम खोजें', fBccOpt: '-- BCC कोड चुनें --',
+    fCfl: 'CFL नाम', fBccDisplay: 'BCC कोड', fDistrict: 'जिला', fState: 'राज्य', fBank: 'बैंक का नाम', fPhase: 'फेज',
+    fBaseBlock: 'बेस ब्लॉक', fAdjBlock: 'निकटवर्ती ब्लॉक', fVisitDate: 'विज़िट की तारीख',
+    fOfficer: 'अधिकारी का नाम', fOfficerOpt: '-- अधिकारी चुनें --', fDesignation: 'पदनाम',
+    fPin: 'PIN (अगर सेट है)',
+    fConsultant: 'कंसल्टेंट स्टाफ का पदनाम', fObserver: 'सेशन ऑब्ज़र्वर / स्टेकहोल्डर का नाम व पदनाम',
+    fSessionType: 'सेशन का प्रकार', fVenue: 'सेशन कहाँ हो रहा है',
+    fuSr: 'क्र.', fuIndicator: 'इंडिकेटर', fuLastObs: 'पिछले माह का ऑब्ज़र्वेशन', fuLastSug: 'पिछले माह का सुझाव',
+    fuLastTl: 'पिछले माह की टाइमलाइन', fuCompletion: 'पूर्णता की तारीख', fuTat: 'TAT', fuSelectCfl: 'CFL चुनें।',
+    photoHint: 'फोटो चुनने के लिए यहाँ क्लिक/टैप करें (कैमरे में जियोटैग ऑन रखें)',
+    locationNote: '📍 ब्राउज़र लोकेशन की अनुमति मांग सकता है — कृपया "Allow" करें। यह विज़िट लोकेशन कन्फर्म करने के लिए ज़रूरी है।',
+    selfieHint: 'सेल्फी लें — लाइव फ्रंट कैमरा',
+    fSignName: 'नाम', fSignOpt: '-- नाम चुनें --', fZone: 'ज़ोन',
+    submitBtn: 'सबमिट करें और रिपोर्ट भेजें',
+    score: 'स्कोर', observation: 'ऑब्ज़र्वेशन', suggestion: 'सुझाव', timelineDate: 'टाइमलाइन तारीख',
+    scoreHintBinary: 'हाँ के लिए 1, नहीं के लिए 0 भरें।', scoreHintScale: 'सवाल के अनुसार 0 से {max} तक स्कोर भरें।',
+    staffingLabel: 'स्टाफिंग विवरण — हर स्टाफ के लिए लागू विकल्प टिक करें (एक या एक से ज़्यादा)',
+    staffingStaff: 'स्टाफ', staffOnboarded: 'ऑनबोर्ड', staffTraining: 'ट्रेनिंग हुई',
+    staffVacantSince: 'कब से खाली है (तारीख)', staffCvInterview: 'CV/इंटरव्यू हुआ', staffVacant: 'खाली'
+  }
+};
+
+function t(key) { return (STR[currentLang] && STR[currentLang][key]) || (STR.en[key] || key); }
+
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('langEN').classList.toggle('active', lang === 'en');
+  document.getElementById('langHI').classList.toggle('active', lang === 'hi');
+  document.querySelectorAll('[data-i18n]').forEach(function (el) {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(function (el) {
+    el.setAttribute('placeholder', '🔍 ' + t(el.getAttribute('data-i18n-ph')));
+  });
+  document.getElementById('checklistTitle').textContent = reportType === 'CFL' ? t('checklistCfl') : t('checklistSession');
+  renderItems(); // regenerate item cards' labels in the new language
+  renderFollowUpTable();
+}
+
+var loggedInEmail = '';
+var isAdmin = false;
+var loggedInOfficerName = '';
+
+// ---------------------------------------------------------------------
+// SESSION — login once, stays logged in across Form/Dashboard/Admin
+// Panel/My Submissions (separate pages) for 12 hours, via localStorage.
+// ---------------------------------------------------------------------
+var SESSION_KEY = 'cfl_session_v1';
+var SESSION_HOURS = 12;
+
+function saveSession_(data) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      email: data.email, isAdmin: !!data.isAdmin, officerName: data.officerName || '', ts: Date.now()
+    }));
+  } catch (e) { /* localStorage unavailable — just won't persist across pages */ }
+}
+
+function loadSession_() {
+  try {
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (Date.now() - data.ts > SESSION_HOURS * 3600000) { localStorage.removeItem(SESSION_KEY); return null; }
+    return data;
+  } catch (e) { return null; }
+}
+
+function logout_() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  loggedInEmail = ''; isAdmin = false; loggedInOfficerName = '';
+  if (WEB_APP_URL) { window.top.location.href = 'index.html'; }
+  else { location.reload(); }
+}
+
+function tryResumeSession_() {
+  var sess = loadSession_();
+  if (!sess) return false;
+  loggedInEmail = sess.email;
+  isAdmin = sess.isAdmin;
+  loggedInOfficerName = sess.officerName;
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('loggedInUserBar').innerHTML = '🔒 Logged in as: ' + sess.email +
+    (sess.officerName ? ' (' + sess.officerName + ')' : '') +
+    ' &nbsp;·&nbsp; <a href="#" onclick="logout_();return false;" style="color:#cf222e;">Logout</a>';
+  applyRoleVisibility_();
+  applyCflScope_();
+  checkForApprovedEdit_();
+  loadBottomSubmissionsList_();
+  return true;
+}
+
+// Non-admin officers only see the CFLs they're actually assigned to (from
+// their Employee Master rows) — and their own name is locked in as
+// Officer Name, so they can't file a visit under someone else's name.
+// Admin sees everything, unrestricted.
+function applyCflScope_() {
+  if (isAdmin || !loggedInOfficerName) return;
+  // BOOT (the CFL dropdown data) may not have loaded yet if login happens
+  // very fast — wait for it instead of silently failing and leaving the
+  // list unfiltered (that was a real bug: the filter callback would throw
+  // on BOOT being null and never re-run).
+  if (!BOOT || !BOOT.cflList || !BOOT.cflList.length) { setTimeout(applyCflScope_, 200); return; }
+
+  google.script.run.withSuccessHandler(function (myCfls) {
+    if (!myCfls || !myCfls.length) return; // nothing assigned — leave list as-is rather than lock them out
+    var set = {};
+    myCfls.forEach(function (c) { set[c] = true; });
+    var sel = document.getElementById('bccCode');
+    Array.from(sel.options).forEach(function (opt) {
+      if (!opt.value) return; // keep placeholder
+      var match = BOOT.cflList.filter(function (c) { return String(c.bccCode) === opt.value; })[0];
+      if (match && !set[match.name]) opt.remove();
+    });
+  }).withFailureHandler(function (err) {
+    console.error('CFL scope filter failed:', err);
+  }).getEmployeeAssignedCFLs(loggedInOfficerName);
+
+  // Lock Officer Name to the logged-in person (only once options exist).
+  var officerSel = document.getElementById('officerName');
+  if (officerSel.options.length > 1) {
+    officerSel.value = loggedInOfficerName;
+    officerSel.disabled = true;
+    onOfficerChange();
+  }
+}
+
+var editSubmissionId = '';
+var editRequestRow = null;
+
+function loadBottomSubmissionsList_() {
+  if (!loggedInEmail) return;
+  google.script.run.withSuccessHandler(function (list) {
+    var el = document.getElementById('bottomSubmissionsList');
+    if (!list || !list.length) { el.innerHTML = '<div class="sub">Abhi tak koi submission nahi hai.</div>'; return; }
+    el.innerHTML = '';
+    list.slice(0, 10).forEach(function (s, i) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 0;border-bottom:1px solid #eee;font-size:12.5px;';
+      row.innerHTML =
+        '<span>' + escapeHtml_(s.cflName) + ' — ' + escapeHtml_(s.reportType) + ' (' + escapeHtml_(s.visitDate) + ')</span>' +
+        '<button type="button" data-idx="' + i + '" style="font-size:11px;padding:5px 10px;border:1px solid #dde3ea;background:#fff;border-radius:6px;cursor:pointer;">✏️ Request Edit</button>';
+      el.appendChild(row);
+      row.querySelector('button').addEventListener('click', function () {
+        var reason = prompt('Kya edit karna hai, chhote me batayein (admin ko dikhega):');
+        if (reason === null) return;
+        google.script.run.withSuccessHandler(function (res) {
+          alert('✅ Request bhej di gayi (' + res.requestId + '). Admin approve karega, phir login karte hi yahan edit ka option aa jaayega.');
+        }).withFailureHandler(function (err) {
+          alert('Error: ' + (err.message || err));
+        }).requestEditPermission(s.submissionId, s.reportType, reason, loggedInEmail);
+      });
+    });
+  }).withFailureHandler(function () {}).getMySubmissions(loggedInEmail);
+}
+
+// Checks if this logged-in person has an approved edit waiting — shows a
+// banner right away so they don't have to hunt for it anywhere.
+function checkForApprovedEdit_() {
+  if (!loggedInEmail) return;
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res) return;
+    var bar = document.getElementById('approvedEditBanner');
+    bar.style.display = 'block';
+    bar.innerHTML = '✏️ Aapki edit request approve ho gayi hai — Submission <b>' + res.submissionId +
+      '</b> edit karne ke liye <a href="#" onclick="startEditSubmission_(\'' + res.submissionId + '\',\'' +
+      res.reportType + '\',' + res.requestRow + ');return false;" style="color:#08427a;font-weight:800;">yahan click karein</a>.';
+  }).withFailureHandler(function () {}).getApprovedEditForUser(loggedInEmail);
+}
+
+// Loads a past submission's data and pre-fills the whole form so the
+// officer can correct it and resubmit — updates the SAME row rather than
+// creating a new one.
+function startEditSubmission_(submissionId, reportType, requestRow) {
+  document.getElementById('approvedEditBanner').style.display = 'none';
+  document.getElementById('editModeBanner').style.display = 'block';
+  document.getElementById('editModeSubmissionId').textContent = submissionId;
+  editSubmissionId = submissionId;
+  editRequestRow = requestRow;
+
+  google.script.run.withSuccessHandler(function (data) {
+    setReportType(reportType);
+    document.getElementById('officerName').disabled = false; // allow re-check, will re-lock via applyCflScope_ if scoped
+    document.getElementById('bccCode').value = ''; // will set via CFL name match below
+    var match = BOOT.cflList.filter(function (c) { return c.name === data.cflName; })[0];
+    if (match) { document.getElementById('bccCode').value = match.bccCode; onBccChange(); }
+    document.getElementById('visitDate').value = data.visitDate;
+    document.getElementById('officerName').value = data.officerName;
+    onOfficerChange();
+    document.getElementById('consultantDesignation').value = data.consultantDesignation || '';
+    document.getElementById('sessionObserver').value = data.sessionObserver || '';
+    document.getElementById('sessionType').value = data.sessionType || '';
+    document.getElementById('sessionVenue').value = data.sessionVenue || '';
+    document.getElementById('signOffName').value = data.signOffName || '';
+    onSignOffChange();
+
+    data.items.forEach(function (it) {
+      var scoreEl = document.querySelector('[data-sr="' + it.sr + '"][data-kind="score"]');
+      var obsEl = document.querySelector('[data-sr="' + it.sr + '"][data-kind="observation"]');
+      var sugEl = document.querySelector('[data-sr="' + it.sr + '"][data-kind="suggestion"]');
+      var tlEl = document.querySelector('[data-sr="' + it.sr + '"][data-kind="timeline"]');
+      if (scoreEl) scoreEl.value = it.score;
+      if (obsEl) obsEl.value = it.observation;
+      if (sugEl) sugEl.value = it.suggestion;
+      if (tlEl) tlEl.value = it.timeline;
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }).withFailureHandler(function (err) {
+    alert('Submission load nahi ho paayi: ' + (err.message || err));
+  }).getSubmissionForEdit(submissionId, reportType);
+}
+
+// Area Managers only get Form Entry — Dashboard (and the Home portal
+// link, if present) are hidden unless logged in as an admin.
+function applyRoleVisibility_() {
+  document.querySelectorAll('.side-menu a').forEach(function (a) {
+    var href = a.getAttribute('href') || '';
+    var isAdminOnly = href.indexOf('dashboard') > -1 || href.indexOf('page=dashboard') > -1 ||
+      href.indexOf('home') > -1 || href.indexOf('page=home') > -1 ||
+      href.indexOf('admin') > -1 || href.indexOf('page=admin') > -1;
+    if (isAdminOnly) a.style.display = isAdmin ? 'block' : 'none';
+  });
+}
+
+// "Email nahi hai" fallback: shows a name-only login for officers the
+// admin has explicitly marked exempt in the Admin Panel.
+function showNoEmailLogin_() {
+  document.getElementById('noEmailToggle').style.display = 'none';
+  document.getElementById('noEmailBox').style.display = 'block';
+  var sel = document.getElementById('exemptName');
+  if (sel.options.length <= 1 && BOOT) {
+    var seen = {};
+    BOOT.employeeList.forEach(function (e) {
+      if (seen[e.name]) return;
+      seen[e.name] = true;
+      var o = document.createElement('option');
+      o.value = e.name; o.textContent = e.name;
+      sel.appendChild(o);
+    });
+  }
+}
+
+function doExemptLogin_() {
+  var name = document.getElementById('exemptName').value;
+  var errEl = document.getElementById('loginError');
+  if (!name) { errEl.textContent = 'Naam select karein.'; return; }
+  errEl.style.color = '#6e7781';
+  errEl.textContent = 'Verify ho raha hai...';
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) {
+      errEl.style.color = '#cf222e';
+      errEl.textContent = 'Aapke liye "bina email" login abhi allow nahi hai. Admin se contact karein.';
+      return;
+    }
+    loggedInEmail = 'NOLOGIN:' + name;
+    isAdmin = false;
+    loggedInOfficerName = name;
+    saveSession_({ email: loggedInEmail, isAdmin: false, officerName: name });
+    document.getElementById('loginGate').style.display = 'none';
+    document.getElementById('loggedInUserBar').innerHTML = '🔒 Logged in as: ' + name + ' (bina email)' +
+      ' &nbsp;·&nbsp; <a href="#" onclick="logout_();return false;" style="color:#cf222e;">Logout</a>';
+    applyRoleVisibility_();
+    applyCflScope_();
+  checkForApprovedEdit_();
+  loadBottomSubmissionsList_();
+  }).withFailureHandler(function (err) {
+    errEl.style.color = '#cf222e';
+    errEl.textContent = 'Error: ' + (err.message || err);
+  }).checkLoginExempt(name);
+}
+
+function doLogin_() {
+  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var errEl = document.getElementById('loginError');
+  var btn = document.querySelector('#loginGate button');
+  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!pattern.test(email)) {
+    errEl.textContent = 'Sahi email address daalein.';
+    return;
+  }
+  errEl.style.color = '#6e7781';
+  errEl.textContent = 'Verify ho raha hai...';
+  btn.disabled = true;
+  google.script.run.withSuccessHandler(function (res) {
+    btn.disabled = false;
+    if (!res || !res.ok) {
+      errEl.style.color = '#cf222e';
+      errEl.textContent = 'Ye email registered nahi hai. Employee Master me apna email check karayein.';
+      return;
+    }
+    loggedInEmail = email;
+    isAdmin = !!res.isAdmin;
+    loggedInOfficerName = res.name || '';
+    saveSession_({ email: email, isAdmin: isAdmin, officerName: loggedInOfficerName });
+    document.getElementById('loginGate').style.display = 'none';
+    document.getElementById('loggedInUserBar').innerHTML = '🔒 Logged in as: ' + email + (res.name ? ' (' + res.name + ')' : '') +
+      ' &nbsp;·&nbsp; <a href="#" onclick="logout_();return false;" style="color:#cf222e;">Logout</a>';
+    applyRoleVisibility_();
+    applyCflScope_();
+  checkForApprovedEdit_();
+  loadBottomSubmissionsList_();
+  }).withFailureHandler(function (err) {
+    btn.disabled = false;
+    errEl.style.color = '#cf222e';
+    errEl.textContent = 'Verify nahi ho paya: ' + (err.message || err);
+  }).checkLoginEmail(email);
+}
+
+var BOOT = null;
+var FORM_OPENED_AT = new Date();
+var photoLocation = null;   // captured once, when photos are first added
+var submitLocation = null;  // captured fresh, right when Submit is pressed
+
+// Security/audit helper: tries to get the device's current GPS location.
+// Never blocks the user if permission is denied or unavailable — just
+// records "Not available" so the audit trail is honest either way.
+function getLocation_(cb) {
+  if (!navigator.geolocation) { cb(null); return; }
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      cb({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy || 0) });
+    },
+    function () { cb(null); },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+// Location is requested EARLY (on page load, and again whenever a camera
+// button is tapped if not yet granted) — this makes the browser's
+// permission prompt appear reliably and predictably, instead of it
+// silently failing or getting skipped depending on browser/OS quirks.
+var locationStatus = 'pending';
+function updateLocStatus_(state, msg) {
+  locationStatus = state;
+  var el = document.getElementById('locStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = state === 'granted' ? '#1a7f37' : (state === 'denied' ? '#cf222e' : '#6e7781');
+}
+
+function requestLocationEarly_() {
+  updateLocStatus_('pending', '📍 Location permission maangi ja rahi hai...');
+  getLocation_(function (loc) {
+    if (loc) {
+      photoLocation = photoLocation || loc;
+      updateLocStatus_('granted', '✅ Location mil gayi — photo/selfie ab geotag honge.');
+    } else {
+      updateLocStatus_('denied', '⚠️ Location permission nahi mili. Browser address bar ke 🔒/ⓘ icon par tap karke "Location" ko "Allow" karein, phir page refresh karein.');
+    }
+  });
+}
+
+function openLiveCamera_(inputId) {
+  if (locationStatus === 'granted') {
+    document.getElementById(inputId).click();
+    return;
+  }
+  // Location is MANDATORY before the camera opens — this guarantees every
+  // photo (and therefore every submission) carries a location, so the
+  // sheet can always show where each entry actually came from.
+  updateLocStatus_('pending', '📍 Location permission maangi ja rahi hai...');
+  getLocation_(function (loc) {
+    if (loc) {
+      photoLocation = photoLocation || loc;
+      updateLocStatus_('granted', '✅ Location mil gayi — photo ab geotag hogi.');
+      document.getElementById(inputId).click();
+    } else {
+      updateLocStatus_('denied', '❌ Location permission zaroori hai photo lene ke liye. Browser address bar ke 🔒/ⓘ icon par tap karke "Location" ko "Allow" karein, phir dobara try karein.');
+      alert('Photo lene ke liye Location permission zaroori hai. Kripya "Allow" karein aur dobara try karein.');
+    }
+  });
+}
+
+requestLocationEarly_();
+
+var WEB_APP_URL = "index.html";
+function reloadForm_() {
+  // Apps Script serves this page inside a sandboxed iframe — a plain
+  // location.reload() reloads that sandbox's temp URL and shows a blank
+  // page. Navigating window.top to the real web app URL reloads properly.
+  if (WEB_APP_URL) { window.top.location.href = 'index.html'; }
+  else { location.reload(); }
+}
+var reportType = 'CFL';
+var photos = []; // {dataUrl, filename}
+var followUpMap = null; // {lastVisitDate, items:{sr:{observation,suggestion,timeline}}}
+
+google.script.run.withSuccessHandler(onBoot).getBootstrapData();
+
+function onBoot(data) {
+  BOOT = data;
+
+  var bccSel = document.getElementById('bccCode');
+  data.cflList.forEach(function (c) {
+    var o = document.createElement('option');
+    o.value = c.bccCode;
+    o.textContent = 'BCC ' + c.bccCode + ' — ' + c.name + (c.district ? ' (' + c.district + ' district)' : '');
+    bccSel.appendChild(o);
+  });
+
+  var seenNames = {};
+  var officerSel = document.getElementById('officerName');
+  data.employeeList.forEach(function (e) {
+    if (seenNames[e.name]) return;
+    seenNames[e.name] = true;
+    var label = e.name + (e.designation ? ' — ' + e.designation : '');
+    var o1 = document.createElement('option');
+    o1.value = e.name; o1.textContent = label; officerSel.appendChild(o1);
+  });
+
+  renderItems();
+  renderFollowUpTable();
+  tryResumeSession_();
+}
+
+function filterSelect(searchId, selectId) {
+  var q = (document.getElementById(searchId).value || '').toLowerCase();
+  var sel = document.getElementById(selectId);
+  for (var i = 0; i < sel.options.length; i++) {
+    var opt = sel.options[i];
+    if (!opt.value) { opt.hidden = false; continue; }
+    opt.hidden = q ? opt.textContent.toLowerCase().indexOf(q) === -1 : false;
+  }
+}
+
+function setReportType(rt) {
+  reportType = rt;
+  document.getElementById('btnCFL').classList.toggle('active', rt === 'CFL');
+  document.getElementById('btnSESSION').classList.toggle('active', rt === 'SESSION');
+  document.getElementById('sessionOnlyFields').style.display = rt === 'SESSION' ? 'grid' : 'none';
+  document.getElementById('consultantWrap').style.display = rt === 'SESSION' ? 'block' : 'none';
+  document.getElementById('checklistTitle').textContent = rt === 'CFL' ? t('checklistCfl') : t('checklistSession');
+  renderItems();
+  if (document.getElementById('cflName').value) loadFollowUp();
+  else renderFollowUpTable();
+}
+
+// ---------------------------------------------------------------------
+// Checklist items: numbered sub-heading only (no guidance paragraph, no
+// tick list) + manual Score + Observation / Suggestion / Timeline Date,
+// with a Staffing sub-block on Sr2.
+// ---------------------------------------------------------------------
+// Quarter-step dropdown options (0, .25, .5, .75, 1, ... up to max) —
+// much easier to use on mobile than typing a number, no keyboard needed.
+function scoreOptionsHtml_(max) {
+  var html = '<option value="" selected disabled>-- Score --</option>';
+  for (var v = 0; v <= max * 4; v++) {
+    var val = v / 4;
+    var label = (val % 1 === 0) ? String(val) : val.toFixed(2).replace(/0$/, '');
+    html += '<option value="' + val + '">' + label + '</option>';
+  }
+  return html;
+}
+
+function renderItems() {
+  if (!BOOT) return;
+  var items = reportType === 'CFL' ? BOOT.cflItems : BOOT.sessionItems;
+  var c = document.getElementById('itemsContainer');
+  c.innerHTML = '';
+  items.forEach(function (it) {
+    var div = document.createElement('div');
+    div.className = 'item';
+    var staffingHtml = (it.staffing && reportType === 'CFL') ? staffingBlockHtml_(it.sr) : '';
+    var scoreHint = it.max === 1 ? t('scoreHintBinary') : t('scoreHintScale').replace('{max}', it.max);
+    var scoreHtml =
+      '<div class="field-block"><label>' + t('score') + ' (0 - ' + it.max + ')</label>' +
+      '<select data-sr="' + it.sr + '" data-kind="score">' + scoreOptionsHtml_(it.max) + '</select>' +
+      '<div class="hint">' + scoreHint + '</div></div>';
+    div.innerHTML =
+      '<div class="item-subhead">' +
+      '<span class="sr-badge">' + it.sr + '</span>' +
+      '<span class="head-en">' + escapeHtml_(it.head) + '</span>' +
+      '<span class="head-hi">' + escapeHtml_(it.headHi || '') + '</span>' +
+      '</div>' +
+      '<div class="item-full">' + formatGuidanceHtml_((currentLang === 'hi' && it.textHi) ? it.textHi : it.text) + '</div>' +
+      staffingHtml +
+      '<div class="obs-sug-row">' +
+      scoreHtml +
+      '<div class="field-block"><label>' + t('observation') + '</label><textarea data-sr="' + it.sr + '" data-kind="observation"></textarea></div>' +
+      '<div class="field-block"><label>' + t('suggestion') + '</label><textarea data-sr="' + it.sr + '" data-kind="suggestion"></textarea></div>' +
+      '<div class="field-block"><label>' + t('timelineDate') + '</label><input type="date" data-sr="' + it.sr + '" data-kind="timeline"></div>' +
+      '</div>';
+    c.appendChild(div);
+  });
+}
+
+// Option A: indicators start collapsed (just the heading row) — tap to
+// expand and fill in Score/Observation/Suggestion/Timeline. Multiple can
+// be open at once — opening one never closes another.
+// Renders guidance text with each numbered point (1. ... 2. ... etc.) on
+// its own line as a proper list item, instead of running everything
+// together — plain intro lines stay as normal paragraph text.
+function formatGuidanceHtml_(text) {
+  var lines = text.split('\n');
+  var introHtml = '';
+  var pointsHtml = '';
+  lines.forEach(function (line) {
+    var trimmed = line.trim();
+    if (!trimmed) return;
+    if (/^\d+\.\s*/.test(trimmed)) {
+      pointsHtml += '<span class="guide-point">' + escapeHtml_(trimmed) + '</span>';
+    } else {
+      introHtml += '<div class="guide-line">' + escapeHtml_(trimmed) + '</div>';
+    }
+  });
+  return introHtml + (pointsHtml ? '<div class="guide-points-wrap">' + pointsHtml + '</div>' : '');
+}
+
+function staffingBlockHtml_(sr) {
+  var roles = ['CM', 'DEO', 'FC1', 'FC2'];
+  var html = '<div class="staffing-block" data-staffing-for="' + sr + '"><label>' + t('staffingLabel') + '</label>' +
+    '<div class="tbl-wrap"><table class="staffing-table"><thead><tr><th>' + t('staffingStaff') + '</th>' +
+    '<th>1. ' + t('staffOnboarded') + '</th><th>2. ' + t('staffTraining') + '</th>' +
+    '<th>3. ' + t('staffVacantSince') + '</th><th>4. ' + t('staffCvInterview') + '</th><th>5. ' + t('staffVacant') + '</th></tr></thead><tbody>';
+  roles.forEach(function (role) {
+    html += '<tr><td class="staff-name">' + role + '</td>' +
+      '<td><input type="checkbox" data-staffing-role="' + role + '" data-staffing-sr="' + sr + '" data-staffing-crit="onboarded"></td>' +
+      '<td><input type="checkbox" data-staffing-role="' + role + '" data-staffing-sr="' + sr + '" data-staffing-crit="training"></td>' +
+      '<td><input type="date" data-staffing-role="' + role + '" data-staffing-sr="' + sr + '" data-staffing-crit="vacantSince" ' +
+      'onchange="calcVacantDays(this)"><div class="days-vacant" id="daysVacant' + sr + role + '"></div></td>' +
+      '<td><input type="checkbox" data-staffing-role="' + role + '" data-staffing-sr="' + sr + '" data-staffing-crit="cvInterview"></td>' +
+      '<td><input type="checkbox" data-staffing-role="' + role + '" data-staffing-sr="' + sr + '" data-staffing-crit="vacant"></td></tr>';
+  });
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+function calcVacantDays(input) {
+  var sr = input.getAttribute('data-staffing-sr'), role = input.getAttribute('data-staffing-role');
+  var out = document.getElementById('daysVacant' + sr + role);
+  if (!input.value) { out.textContent = ''; return; }
+  var days = Math.round((new Date() - new Date(input.value)) / 86400000);
+  out.textContent = days >= 0 ? days + ' din se khali hai' : 'Future date';
+}
+
+function escapeHtml_(t) {
+  return (t == null ? '' : String(t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---------------------------------------------------------------------
+// Visit details lookups
+// ---------------------------------------------------------------------
+function onBccChange() {
+  var bcc = document.getElementById('bccCode').value;
+  var c = BOOT.cflList.filter(function (x) { return String(x.bccCode) === String(bcc); })[0];
+  if (!c) {
+    ['cflName','bccCodeDisplay','district','state','bankName','phase','baseBlock'].forEach(function(id){
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('adjBlock').innerHTML = '';
+    renderFollowUpTable();
+    return;
+  }
+  document.getElementById('cflName').value = c.name;
+  document.getElementById('bccCodeDisplay').value = c.bccCode;
+  document.getElementById('district').value = c.district;
+  document.getElementById('state').value = c.state;
+  document.getElementById('bankName').value = c.bankName;
+  document.getElementById('phase').value = c.phase;
+  document.getElementById('baseBlock').value = c.baseBlock;
+  var adj = document.getElementById('adjBlock');
+  adj.innerHTML = '';
+  [c.baseBlock, c.adjBlock1, c.adjBlock2].filter(Boolean).forEach(function (b) {
+    var o = document.createElement('option'); o.value = b; o.textContent = b; adj.appendChild(o);
+  });
+  loadFollowUp();
+}
+
+function loadFollowUp() {
+  var name = document.getElementById('cflName').value;
+  if (!name) { renderFollowUpTable(); return; }
+  document.getElementById('fuHint').textContent = 'Loading...';
+  google.script.run.withSuccessHandler(function (fu) {
+    followUpMap = fu;
+    document.getElementById('fuHint').textContent = fu && fu.lastVisitDate ?
+      'Pichli visit: ' + fu.lastVisitDate : 'Pehli visit — koi previous data nahi.';
+    renderFollowUpTable();
+  }).getFollowUpData(reportType, name);
+}
+
+function renderFollowUpTable() {
+  var tb = document.getElementById('fuTbody');
+  if (!BOOT) return;
+  var items = reportType === 'CFL' ? BOOT.cflItems : BOOT.sessionItems;
+  if (!document.getElementById('cflName').value) {
+    tb.innerHTML = '<tr><td colspan="7" style="padding:12px;color:#6e7781;">CFL select karein.</td></tr>';
+    return;
+  }
+  // Only show indicators that actually have something from the previous
+  // visit — whatever was typed in that visit's Observation/Suggestion is
+  // exactly what appears here, nothing pre-listed or invented.
+  var withData = items.filter(function (it) {
+    var fu = followUpMap && followUpMap.items && followUpMap.items[it.sr];
+    return fu && (fu.observation || fu.suggestion);
+  });
+  if (!withData.length) {
+    tb.innerHTML = '<tr><td colspan="7" style="padding:12px;color:#6e7781;">' +
+      (followUpMap && followUpMap.lastVisitDate ? 'Pichli visit me koi Observation/Suggestion darj nahi tha.' : 'Pehli visit — koi previous data nahi.') + '</td></tr>';
+    return;
+  }
+  tb.innerHTML = '';
+  withData.forEach(function (it) {
+    var fu = followUpMap.items[it.sr];
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + it.sr + '</td>' +
+      '<td class="fu-head">' + escapeHtml_(it.head) + '</td>' +
+      '<td class="fu-readonly">' + (escapeHtml_(fu.observation) || '-') + '</td>' +
+      '<td class="fu-readonly">' + (escapeHtml_(fu.suggestion) || '-') + '</td>' +
+      '<td>' + (fu.timeline || '-') + '</td>' +
+      '<td><input type="date" data-fu-sr="' + it.sr + '" data-last-timeline="' + (fu.timeline || '') + '" onchange="updateFuTat(this)"></td>' +
+      '<td><span class="tat-badge tat-Pending" id="tatBadge' + it.sr + '">Pending</span></td>';
+    tb.appendChild(tr);
+    // Show a LIVE badge immediately (computed against today) even before
+    // Completion Date is filled in — so an overdue item shows Red with a
+    // growing day-count right away, not just "Pending" until someone types
+    // a completion date.
+    computeAndShowTat_(it.sr, fu.timeline, '');
+  });
+}
+
+// Shared TAT calculation — matches the server-side logic exactly:
+// within 7 days of Timeline Date = Green; beyond = Red showing only the
+// days OVER the 7-day limit. If completion isn't given yet, calculated
+// live against today so the Red count grows day by day until completed.
+function computeAndShowTat_(sr, timelineStr, completionStr) {
+  var badge = document.getElementById('tatBadge' + sr);
+  if (!badge || !timelineStr) return;
+  var limit = (BOOT && BOOT.tatLimitDays) || 7;
+  var d1 = new Date(timelineStr);
+  var d2 = completionStr ? new Date(completionStr) : new Date();
+  var days = Math.round((d2 - d1) / 86400000);
+
+  if (days < 0) { badge.className = 'tat-badge tat-Pending'; badge.textContent = 'Pending'; return; }
+  if (days <= limit) {
+    badge.className = 'tat-badge tat-Green';
+    badge.textContent = 'Green (' + days + 'd)';
+    return;
+  }
+  var overDays = days - limit;
+  badge.className = 'tat-badge tat-Red';
+  badge.textContent = 'Red (+' + overDays + 'd)';
+}
+
+function updateFuTat(input) {
+  var sr = input.getAttribute('data-fu-sr');
+  var lastTimeline = input.getAttribute('data-last-timeline');
+  computeAndShowTat_(sr, lastTimeline, input.value);
+}
+
+function onOfficerChange() {
+  var officerName = document.getElementById('officerName').value;
+  var e = findEmployee_(officerName);
+  document.getElementById('officerDesignation').value = e ? e.designation : '';
+
+  // Sign-off is now automatic — same person as the officer filling the
+  // form, no separate selection needed.
+  document.getElementById('signOffName').value = officerName;
+  onSignOffChange();
+}
+
+function onSignOffChange() {
+  var e = findEmployee_(document.getElementById('signOffName').value);
+  document.getElementById('signOffDesig').value = e ? e.designation : '';
+  document.getElementById('signOffDistrict').value = e ? e.district : '';
+  document.getElementById('signOffZone').value = e ? e.zone : '';
+}
+
+function findEmployee_(name) {
+  var matches = BOOT.employeeList.filter(function (x) { return x.name === name; });
+  if (!matches.length) return null;
+  var cflName = document.getElementById('cflName').value;
+  var exact = matches.filter(function (x) { return x.cfl === cflName; })[0];
+  return exact || matches[0];
+}
+
+// ---------------------------------------------------------------------
+// Photos: client-side compress + thumbnail gallery
+// ---------------------------------------------------------------------
+function handlePhotos(ev) {
+  if (!photoLocation) {
+    getLocation_(function (loc) { photoLocation = loc || 'denied'; });
+  }
+  var files = Array.from(ev.target.files);
+  files.forEach(function (f) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      compressImage_(e.target.result, function (dataUrl) {
+        photos.push({ dataUrl: dataUrl, filename: f.name });
+        renderThumbs();
+      });
+    };
+    reader.readAsDataURL(f);
+  });
+  ev.target.value = '';
+}
+
+// Auto-adaptive compression: keeps shrinking quality (and, if still too
+// big, dimensions) until the photo is under a target size — so a huge
+// 12MP camera photo and a small one both end up upload-friendly, without
+// the officer having to think about it. Fixes slow/hanging uploads on
+// weak mobile connections caused by oversized photos.
+var COMPRESS_TARGET_BYTES = 350 * 1024; // ~350KB target per photo
+function compressImage_(dataUrl, cb) {
+  var img = new Image();
+  img.onload = function () {
+    var maxW = Math.min(1400, img.width); // never upscale, cap at 1400px wide
+    tryCompress_(img, maxW, 0.75, cb);
+  };
+  img.onerror = function () { cb(dataUrl); }; // fall back to original if something odd happens
+  img.src = dataUrl;
+}
+
+function tryCompress_(img, width, quality, cb, attempt) {
+  attempt = attempt || 1;
+  var scale = Math.min(1, width / img.width);
+  var canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  var out = canvas.toDataURL('image/jpeg', quality);
+  var approxBytes = Math.round(out.length * 0.75); // base64 -> raw bytes estimate
+
+  if (approxBytes <= COMPRESS_TARGET_BYTES || attempt >= 5) {
+    cb(out);
+    return;
+  }
+  // Still too big — shrink further (quality first, then dimensions) and retry.
+  var nextQuality = quality > 0.4 ? quality - 0.15 : quality;
+  var nextWidth = quality <= 0.4 ? Math.round(width * 0.8) : width;
+  tryCompress_(img, nextWidth, nextQuality, cb, attempt + 1);
+}
+
+function renderThumbs() {
+  var g = document.getElementById('thumbGallery');
+  g.innerHTML = '';
+  photos.forEach(function (p, i) {
+    var d = document.createElement('div'); d.className = 'thumb';
+    d.innerHTML = '<img src="' + p.dataUrl + '">' +
+      '<button class="rm" onclick="removePhoto(' + i + ')">×</button>';
+    g.appendChild(d);
+  });
+}
+function removePhoto(i) { photos.splice(i, 1); renderThumbs(); }
+
+// ---------------------------------------------------------------------
+// Submit
+// ---------------------------------------------------------------------
+function doSubmit() {
+  var status = document.getElementById('statusMsg');
+  status.className = 'msg'; status.textContent = '';
+
+  if (!loggedInEmail) {
+    status.className = 'msg err';
+    status.textContent = 'Pehle login karein (email daalein).';
+    document.getElementById('loginGate').style.display = 'flex';
+    return;
+  }
+
+  var cflName = document.getElementById('cflName').value;
+  var visitDate = document.getElementById('visitDate').value;
+  var officerName = document.getElementById('officerName').value;
+  var officerDesignation = document.getElementById('officerDesignation').value;
+  var signOffName = document.getElementById('signOffName').value;
+
+  if (!cflName || !visitDate || !officerName || !officerDesignation) {
+    status.className = 'msg err'; status.textContent = 'Sabhi zaroori (*) fields bharein (BCC Code select karke).'; return;
+  }
+  if (!editSubmissionId && photos.length < 2) { status.className = 'msg err'; status.textContent = 'Kam se kam 2 photo upload karein.'; return; }
+  if (!signOffName) { status.className = 'msg err'; status.textContent = 'Sign-off Name select karein.'; return; }
+
+  // Score is mandatory — the dropdown starts on a disabled placeholder,
+  // so an unselected Score is genuinely detectable (not silently 0).
+  // Observation and Suggestion remain optional.
+  var scoreInputsCheck = document.querySelectorAll('[data-kind="score"]');
+  var missingScoreSr = null;
+  scoreInputsCheck.forEach(function (el) {
+    if (missingScoreSr) return;
+    if (!el.value) missingScoreSr = el.getAttribute('data-sr');
+  });
+  if (missingScoreSr) {
+    status.className = 'msg err';
+    status.textContent = '❌ Sr ' + missingScoreSr + ' ka Score select nahi kiya gaya — Score bharna zaroori hai.';
+    var badScoreEl = document.querySelector('[data-kind="score"][data-sr="' + missingScoreSr + '"]');
+    if (badScoreEl) { badScoreEl.style.borderColor = '#cf222e'; badScoreEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); badScoreEl.focus(); }
+    return;
+  }
+
+  document.getElementById('submitBtn').disabled = true;
+  proceedWithSubmit_(cflName, visitDate, officerName, officerDesignation, signOffName, status);
+}
+
+function proceedWithSubmit_(cflName, visitDate, officerName, officerDesignation, signOffName, status) {
+  var scoreInputs = document.querySelectorAll('[data-kind="score"]');
+  var items = [];
+  scoreInputs.forEach(function (inp) {
+    var sr = inp.getAttribute('data-sr');
+    var obsEl = document.querySelector('[data-kind="observation"][data-sr="' + sr + '"]');
+    var sugEl = document.querySelector('[data-kind="suggestion"][data-sr="' + sr + '"]');
+    var tlEl = document.querySelector('[data-kind="timeline"][data-sr="' + sr + '"]');
+    var observation = obsEl ? obsEl.value : '';
+
+    // Staffing Details sub-block (Sr2, CFL only) is captured as its OWN
+    // field — Observation/Suggestion only ever contain what the officer
+    // typed in those boxes, nothing auto-added.
+    var staffingBlock = document.querySelector('[data-staffing-for="' + sr + '"]');
+    var staffingNote = '';
+    if (staffingBlock) {
+      var roles = ['CM', 'DEO', 'FC1', 'FC2'];
+      var staffingLines = [];
+      roles.forEach(function (role) {
+        var onboarded = staffingBlock.querySelector('[data-staffing-role="' + role + '"][data-staffing-crit="onboarded"]').checked;
+        var training = staffingBlock.querySelector('[data-staffing-role="' + role + '"][data-staffing-crit="training"]').checked;
+        var cvInterview = staffingBlock.querySelector('[data-staffing-role="' + role + '"][data-staffing-crit="cvInterview"]').checked;
+        var vacant = staffingBlock.querySelector('[data-staffing-role="' + role + '"][data-staffing-crit="vacant"]').checked;
+        var vacantSince = staffingBlock.querySelector('[data-staffing-role="' + role + '"][data-staffing-crit="vacantSince"]').value;
+        var parts = [];
+        if (onboarded) parts.push('Onboarded');
+        if (training) parts.push('Attended Training');
+        if (cvInterview) parts.push('CV/Interview Done');
+        if (vacant) parts.push('Vacant');
+        if (vacantSince) {
+          var days = Math.round((new Date() - new Date(vacantSince)) / 86400000);
+          parts.push('Vacant Since ' + vacantSince + ' (' + days + ' din)');
+        }
+        if (parts.length) staffingLines.push(role + ': ' + parts.join(', '));
+      });
+      staffingNote = staffingLines.join('\n');
+    }
+
+    var fuInput = document.querySelector('[data-fu-sr="' + sr + '"]');
+    items.push({
+      sr: sr, score: inp.value, observation: observation, suggestion: sugEl ? sugEl.value : '',
+      timeline: tlEl ? tlEl.value : '', completionDate: fuInput ? fuInput.value : '', staffingNote: staffingNote
+    });
+  });
+
+  status.textContent = 'Location confirm ho rahi hai...';
+
+  getLocation_(function (loc) {
+    if (!loc) {
+      document.getElementById('submitBtn').disabled = false;
+      status.className = 'msg err';
+      status.textContent = '❌ Location permission zaroori hai. Browser address bar ke 🔒/ⓘ icon se "Location" ko "Allow" karke dobara try karein.';
+      return;
+    }
+    submitLocation = loc;
+    status.textContent = 'Photos upload ho rahi hain...';
+    uploadAllPhotos_(function (uploadedPhotos) {
+      status.textContent = 'Report generate ho raha hai (PDF + Excel) aur email bheja ja raha hai...';
+      var payload = {
+        reportType: reportType,
+        cflName: cflName, bccCode: document.getElementById('bccCode').value,
+        district: document.getElementById('district').value, state: document.getElementById('state').value,
+        bankName: document.getElementById('bankName').value, phase: document.getElementById('phase').value,
+        baseBlock: document.getElementById('baseBlock').value, adjBlock: document.getElementById('adjBlock').value,
+        visitDate: visitDate, officerName: officerName, officerDesignation: officerDesignation, loggedInEmail: loggedInEmail,
+        editSubmissionId: editSubmissionId || '', editRequestRow: editRequestRow || null,
+        consultantDesignation: document.getElementById('consultantDesignation').value,
+        sessionObserver: document.getElementById('sessionObserver').value,
+        sessionType: document.getElementById('sessionType').value,
+        sessionVenue: document.getElementById('sessionVenue').value,
+        items: items, photos: uploadedPhotos,
+        signOff: {
+          name: signOffName, designation: document.getElementById('signOffDesig').value,
+          district: document.getElementById('signOffDistrict').value, zone: document.getElementById('signOffZone').value
+        },
+        // Audit trail (security): when the form was opened, where the
+        // photos were taken, and where the Submit button was pressed —
+        // helps confirm the visit was actually filled by the assigned officer.
+        formOpenedAt: FORM_OPENED_AT.toISOString(),
+        photoLocation: photoLocation,
+        submitLocation: submitLocation
+      };
+      google.script.run
+        .withSuccessHandler(onSubmitSuccess)
+        .withFailureHandler(onSubmitError)
+        .submitReport(payload);
+    }, status, function (msg) {
+      document.getElementById('submitBtn').disabled = false;
+      status.className = 'msg err';
+      status.textContent = '❌ ' + msg;
+    }, officerName);
+  });
+}
+
+function uploadAllPhotos_(cb, status, onError, officerName) {
+  var results = []; var i = 0;
+  var TIMEOUT_MS = 30000; // if a single photo hangs this long, treat it as failed
+  function next() {
+    if (i >= photos.length) { cb(results); return; }
+    status.textContent = 'Photo ' + (i + 1) + '/' + photos.length + ' upload ho rahi hai...';
+    var done = false;
+    var timer = setTimeout(function () {
+      if (done) return;
+      done = true;
+      onError('Photo ' + (i + 1) + ' upload me bahut time lag raha hai (30 second se zyada). ' +
+        'Internet connection check karein aur dobara try karein — ho sakta hai photo ka size bada ho.');
+    }, TIMEOUT_MS);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        results.push(r); i++; next();
+      })
+      .withFailureHandler(function (err) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        onError('Photo ' + (i + 1) + ' upload fail ho gayi: ' + (err.message || err));
+      })
+      .uploadPhoto(photos[i].dataUrl, photos[i].filename || ('photo' + i + '.jpg'), 'image/jpeg', officerName || '');
+  }
+  next();
+}
+
+function onSubmitSuccess(res) {
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('statusMsg').className = 'msg ok';
+  document.getElementById('statusMsg').textContent = '✅ Data submitted successfully.';
+  document.getElementById('previewSummary').innerHTML = '<b>✅ Data submitted successfully.</b>';
+  document.getElementById('pdfLink').href = res.pdfUrl;
+  document.getElementById('excelLink').href = res.excelUrl;
+  document.getElementById('reportPreviewWrap').innerHTML = res.previewHtml || '';
+  document.getElementById('previewModal').style.display = 'block';
+  startAutoRefreshCountdown_(20);
+}
+
+// Auto-refreshes the page a short while after a successful submit, so the
+// next entry always starts on a clean, empty form. Downloading PDF/Excel
+// (target="_blank") happens in a new tab, so it isn't interrupted by this.
+function startAutoRefreshCountdown_(seconds) {
+  var hint = document.getElementById('autoRefreshHint');
+  var remaining = seconds;
+  var tick = function () {
+    hint.textContent = 'Naye entry ke liye page ' + remaining + ' second me apne aap refresh hoga...';
+    if (remaining <= 0) { reloadForm_(); return; }
+    remaining--;
+    setTimeout(tick, 1000);
+  };
+  tick();
+}
+
+function onSubmitError(err) {
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('statusMsg').className = 'msg err';
+  document.getElementById('statusMsg').textContent = 'Error: ' + (err.message || err);
+}
+</script>
+
+<script>
+function toggleMenu_() {
+  document.getElementById('sideMenu').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

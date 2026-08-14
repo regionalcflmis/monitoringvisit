@@ -1,0 +1,30 @@
+{
+  "name": "CFL Monitoring System",
+  "short_name": "CFL Monitoring",
+  "description": "MoneyWise CFL Monitoring Visit & Session Quality Monitoring",
+  "start_url": "/monitoringvisit/index.html",
+  "scope": "/monitoringvisit/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f9",
+  "theme_color": "#0b5cab",
+  "icons": [
+    {
+      "src": "/monitoringvisit/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/monitoringvisit/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/monitoringvisit/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/monitoringvisit/"
+}

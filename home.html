@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b5cab">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CFL Monitoring">
+<style>
+  :root{--blue:#0b5cab;--blue-dark:#08427a;--gray:#6e7781;--bg:#f4f6f9;--card:#fff;--border:#dde3ea;}
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);margin:0;color:#1f2328;}
+  .wrap{max-width:820px;margin:0 auto;padding:28px 20px;}
+  h1{font-size:22px;color:var(--blue-dark);margin:8px 0 4px;font-weight:800;text-align:center;}
+  .sub{color:var(--gray);font-size:13px;text-align:center;margin-bottom:28px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;text-decoration:none;color:inherit;display:block;box-shadow:0 1px 3px rgba(16,24,40,.06);transition:.15s;}
+  .card:hover{border-color:var(--blue);box-shadow:0 4px 14px rgba(11,92,171,.15);transform:translateY(-2px);}
+  .card .icon{font-size:32px;margin-bottom:10px;}
+  .card h2{font-size:16px;margin:0 0 6px;color:var(--blue-dark);}
+  .card p{font-size:12.5px;color:var(--gray);margin:0;line-height:1.5;}
+  .note{margin-top:28px;font-size:12px;color:var(--gray);text-align:center;line-height:1.6;}
+  @media (max-width:500px){
+    .wrap{padding:20px 14px;}
+    h1{font-size:19px;}
+  }
+</style>
+
+<style>
+  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
+  .side-menu.open{transform:translateX(0);}
+  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;border-left:3px solid transparent;}
+  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);border-left-color:#fff;}
+  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
+  .menu-overlay.open{display:block;}
+</style>
+
+<script src="api.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW registration failed:', e); });
+  });
+}
+</script>
+</head>
+<body>
+<div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
+    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+    <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Admin Login</h2>
+    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Ye page sirf admin ke liye hai</div>
+    <input type="email" id="loginEmail" placeholder="admin.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
+    <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
+  </div>
+</div>
+<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
+<div class="side-menu" id="sideMenu">
+  <a href="home.html" class="active">🏠 Home</a>
+  <a href="index.html">📋 Form Entry</a>
+  <a href="mysubmissions.html">📄 My Submissions</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+  <a href="admin.html">⚙️ Admin Panel</a>
+  <a href="#" onclick="logout_();return false;" style="color:#ffb4b4;">🚪 Logout</a>
+</div>
+<div class="wrap">
+  <h1>MoneyWise CFL Monitoring System</h1>
+  <div class="sub">Ek hi jagah se saare forms aur dashboard access karein</div>
+
+  <div class="cards">
+    <a class="card" href="index.html">
+      <div class="icon">📋</div>
+      <h2>CFL / Session Monitoring Form</h2>
+      <p>CFL Monitoring Visit (17 indicators) aur Session Monitoring (14 indicators) — dono ek hi form me, upar toggle se switch karein.</p>
+    </a>
+
+    <a class="card" href="dashboard.html">
+      <div class="icon">📊</div>
+      <h2>Dashboard</h2>
+      <p>Indicator-wise compliance, grading, TAT summary aur sab visits ka live view.</p>
+    </a>
+
+    <!-- Naya form add karna ho to yahan ek aur <a class="card"> block jod dein -->
+  </div>
+
+  <div class="note">
+    Ye ek hi link (index.html) sabko share karein — is page se sab log
+    apni zaroorat ka form/dashboard khud select kar lenge, alag-alag link
+    dena nahi padega.
+  </div>
+</div>
+
+<script>
+function toggleMenu_() {
+  document.getElementById('sideMenu').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('open');
+}
+</script>
+
+<script>
+var WEB_APP_URL = "index.html";
+// ---------------------------------------------------------------------
+// SESSION — login once, stays logged in across pages for 12 hours.
+// ---------------------------------------------------------------------
+var SESSION_KEY = 'cfl_session_v1';
+var SESSION_HOURS = 12;
+function loadSession_() {
+  try {
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (Date.now() - data.ts > SESSION_HOURS * 3600000) { localStorage.removeItem(SESSION_KEY); return null; }
+    return data;
+  } catch (e) { return null; }
+}
+function saveSession_(data) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ email: data.email, isAdmin: !!data.isAdmin, officerName: data.officerName || '', ts: Date.now() })); }
+  catch (e) {}
+}
+function logout_() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  if (WEB_APP_URL) { window.top.location.href = 'home.html'; }
+  else { location.reload(); }
+}
+function tryResumeSession_() {
+  var sess = loadSession_();
+  if (!sess || !sess.isAdmin) return false;
+  document.getElementById('loginGate').style.display = 'none';
+  return true;
+}
+tryResumeSession_();
+
+function doLogin_() {
+  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var errEl = document.getElementById('loginError');
+  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!pattern.test(email)) { errEl.textContent = 'Sahi email daalein.'; return; }
+  errEl.style.color = '#6e7781';
+  errEl.textContent = 'Verify ho raha hai...';
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok || !res.isAdmin) {
+      errEl.style.color = '#cf222e';
+      errEl.textContent = 'Ye page sirf admin ke liye hai. Aap Form Entry use karein.';
+      return;
+    }
+    saveSession_({ email: email, isAdmin: true, officerName: res.name || '' });
+    document.getElementById('loginGate').style.display = 'none';
+  }).withFailureHandler(function (err) {
+    errEl.style.color = '#cf222e';
+    errEl.textContent = 'Error: ' + (err.message || err);
+  }).checkLoginEmail(email);
+}
+</script>
+</body>
+</html>

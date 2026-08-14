@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b5cab">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  :root{--blue:#0b5cab;--blue-dark:#08427a;--green:#1a7f37;--red:#cf222e;--gray:#6e7781;--bg:#f4f6f9;--card:#fff;--border:#dde3ea;}
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);margin:0;color:#1f2328;}
+  .wrap{max-width:900px;margin:0 auto;padding:18px;}
+  h1{font-size:20px;color:var(--blue-dark);margin:8px 0 4px;font-weight:800;}
+  .sub{color:var(--gray);font-size:13px;margin-bottom:16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(16,24,40,.06);}
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px;}
+  th{background:var(--blue);color:#fff;padding:9px;text-align:left;font-size:11.5px;}
+  td{padding:8px 9px;border-bottom:1px solid var(--border);}
+  tr:nth-child(even) td{background:#fafbfc;}
+  input[type=email]{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
+  .save-btn{background:var(--blue);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;}
+  .save-btn:disabled{opacity:.5;}
+  .status{font-size:11px;margin-top:4px;}
+  .status.ok{color:var(--green);} .status.err{color:var(--red);}
+  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
+  .side-menu.open{transform:translateX(0);}
+  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;}
+  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);}
+  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
+  .menu-overlay.open{display:block;}
+  .empty{color:var(--gray);padding:14px;text-align:center;}
+</style>
+
+<script src="api.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW registration failed:', e); });
+  });
+}
+</script>
+</head>
+<body>
+<div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
+    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+    <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Admin Login</h2>
+    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Admin Panel sirf admin ke liye hai</div>
+    <input type="email" id="loginEmail" placeholder="admin.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
+    <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
+  </div>
+</div>
+
+<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
+<div class="side-menu" id="sideMenu">
+  <a href="home.html">🏠 Home</a>
+  <a href="index.html">📋 Form Entry</a>
+  <a href="mysubmissions.html">📄 My Submissions</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+  <a href="admin.html" class="active">⚙️ Admin Panel</a>
+  <a href="#" onclick="logout_();return false;" style="color:#ffb4b4;">🚪 Logout</a>
+</div>
+
+<div class="wrap">
+  <h1>⚙️ Admin Panel</h1>
+  <div class="sub">Employee email edit karein, naya officer/CFL assignment add karein, aur edit requests approve karein</div>
+
+  <div class="card">
+    <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">➕ Naya Officer / CFL Assignment Add Karein</h2>
+    <div class="sub" style="margin-bottom:10px;">Naya manager aaye, ya kisi officer ko kisi aur zone/district/CFL me transfer karna ho, to yahan se naya row add karein.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
+      <input id="newName" placeholder="Name">
+      <input id="newDesignation" placeholder="Designation">
+      <input id="newState" placeholder="State">
+      <input id="newDistrict" placeholder="District">
+      <input id="newZone" placeholder="Zone">
+      <input id="newCfl" placeholder="CFL Name">
+      <input id="newEmail" type="email" placeholder="Email (optional)">
+    </div>
+    <button class="save-btn" style="margin-top:10px;" onclick="addNewRow_()">Add Row</button>
+    <div class="status" id="newRowStatus"></div>
+  </div>
+
+  <div class="card">
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label style="font-weight:700;font-size:12.5px;color:#374151;">Zone se filter karein:</label>
+      <select id="zoneFilter" onchange="renderEmployees_()" style="padding:8px;border:1px solid #dde3ea;border-radius:6px;font-size:13px;min-width:180px;"><option value="">-- Sab Zones --</option></select>
+      <div class="sub" style="margin:0;">Ek naam ab sirf EK BAAR dikhta hai — email ek baar save karo, unki saari CFL rows apne aap update ho jaati hain.</div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Designation / Zone</th><th>CFL(s) Assigned</th><th>Email</th><th>Login Exempt<br>(bina email chale)</th><th>Save</th></tr>
+        </thead>
+        <tbody id="empTbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">📝 Edit Requests</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Submission ID</th><th>Requested By</th><th>Reason</th><th>Status</th><th>Requested At</th><th>Action</th></tr>
+        </thead>
+        <tbody id="reqTbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+var WEB_APP_URL = "index.html";
+function toggleMenu_() {
+  document.getElementById('sideMenu').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('open');
+}
+
+// ---------------------------------------------------------------------
+// SESSION — login once, stays logged in across pages for 12 hours.
+// ---------------------------------------------------------------------
+var SESSION_KEY = 'cfl_session_v1';
+var SESSION_HOURS = 12;
+function loadSession_() {
+  try {
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (Date.now() - data.ts > SESSION_HOURS * 3600000) { localStorage.removeItem(SESSION_KEY); return null; }
+    return data;
+  } catch (e) { return null; }
+}
+function saveSession_(data) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ email: data.email, isAdmin: !!data.isAdmin, officerName: data.officerName || '', ts: Date.now() })); }
+  catch (e) {}
+}
+function logout_() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  if (WEB_APP_URL) { window.top.location.href = 'admin.html'; }
+  else { location.reload(); }
+}
+function tryResumeSession_() {
+  var sess = loadSession_();
+  if (!sess || !sess.isAdmin) return false;
+  document.getElementById('loginGate').style.display = 'none';
+  loadEmployees_();
+  loadEditRequests_();
+  return true;
+}
+tryResumeSession_();
+
+function doLogin_() {
+  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var errEl = document.getElementById('loginError');
+  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!pattern.test(email)) { errEl.textContent = 'Sahi email daalein.'; return; }
+  errEl.style.color = '#6e7781';
+  errEl.textContent = 'Verify ho raha hai...';
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok || !res.isAdmin) {
+      errEl.style.color = '#cf222e';
+      errEl.textContent = 'Admin Panel sirf admin ke liye hai.';
+      return;
+    }
+    saveSession_({ email: email, isAdmin: true, officerName: res.name || '' });
+    document.getElementById('loginGate').style.display = 'none';
+    loadEmployees_();
+    loadEditRequests_();
+  }).withFailureHandler(function (err) {
+    errEl.style.color = '#cf222e';
+    errEl.textContent = 'Error: ' + (err.message || err);
+  }).checkLoginEmail(email);
+}
+
+function addNewRow_() {
+  var data = {
+    name: document.getElementById('newName').value.trim(),
+    designation: document.getElementById('newDesignation').value.trim(),
+    state: document.getElementById('newState').value.trim(),
+    district: document.getElementById('newDistrict').value.trim(),
+    zone: document.getElementById('newZone').value.trim(),
+    cfl: document.getElementById('newCfl').value.trim(),
+    email: document.getElementById('newEmail').value.trim().toLowerCase()
+  };
+  var statusEl = document.getElementById('newRowStatus');
+  if (!data.name || !data.cfl) {
+    statusEl.className = 'status err'; statusEl.textContent = 'Name aur CFL Name zaroori hai.';
+    return;
+  }
+  statusEl.className = 'status'; statusEl.textContent = 'Adding...';
+  google.script.run.withSuccessHandler(function () {
+    statusEl.className = 'status ok'; statusEl.textContent = '✅ Row add ho gayi.';
+    ['newName','newDesignation','newState','newDistrict','newZone','newCfl','newEmail'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    loadEmployees_();
+  }).withFailureHandler(function (err) {
+    statusEl.className = 'status err'; statusEl.textContent = 'Error: ' + (err.message || err);
+  }).adminAddEmployeeRow(data);
+}
+
+function loadEditRequests_() {
+  google.script.run.withSuccessHandler(renderRequests_).withFailureHandler(function (err) {
+    document.getElementById('reqTbody').innerHTML = '<tr><td colspan="6" class="empty">Error: ' + (err.message || err) + '</td></tr>';
+  }).getEditRequests();
+}
+
+function renderRequests_(list) {
+  var tb = document.getElementById('reqTbody');
+  if (!list || !list.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">Koi request nahi hai.</td></tr>'; return; }
+  tb.innerHTML = '';
+  list.forEach(function (r) {
+    var tr = document.createElement('tr');
+    var actionHtml = r.status === 'Pending' ?
+      '<button class="save-btn" data-row="' + r.row + '" data-approve="1" style="margin-right:4px;">✅ Approve</button>' +
+      '<button class="save-btn" data-row="' + r.row + '" data-approve="0" style="background:#cf222e;">❌ Reject</button>' :
+      esc_(r.status);
+    tr.innerHTML =
+      '<td>' + esc_(r.submissionId) + '</td>' +
+      '<td>' + esc_(r.requestedBy) + '</td>' +
+      '<td>' + esc_(r.reason) + '</td>' +
+      '<td>' + esc_(r.status) + '</td>' +
+      '<td>' + esc_(r.requestedAt) + '</td>' +
+      '<td>' + actionHtml + '</td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('button[data-row]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var row = btn.getAttribute('data-row');
+      var approve = btn.getAttribute('data-approve') === '1';
+      google.script.run.withSuccessHandler(function () { loadEditRequests_(); })
+        .respondEditRequest(Number(row), approve);
+    });
+  });
+}
+
+var allEmployees_ = [];
+
+function loadEmployees_() {
+  google.script.run.withSuccessHandler(function (list) {
+    allEmployees_ = list || [];
+    populateZoneFilter_();
+    renderEmployees_();
+  }).withFailureHandler(function (err) {
+    document.getElementById('empTbody').innerHTML = '<tr><td colspan="6" class="empty">Error: ' + (err.message || err) + '</td></tr>';
+  }).getAdminEmployeeList();
+}
+
+function populateZoneFilter_() {
+  var sel = document.getElementById('zoneFilter');
+  if (!sel) return;
+  var zones = {};
+  allEmployees_.forEach(function (e) { if (e.zone) zones[e.zone] = true; });
+  sel.innerHTML = '<option value="">-- Sab Zones --</option>';
+  Object.keys(zones).sort().forEach(function (z) {
+    var o = document.createElement('option'); o.value = z; o.textContent = z; sel.appendChild(o);
+  });
+}
+
+// Each Area Manager has ONE ROW PER ASSIGNED CFL in the sheet — this
+// dedupes by Name so admin sees each person ONCE (with all their CFLs
+// listed together), instead of the same name repeated many times.
+function renderEmployees_() {
+  var zoneFilter = document.getElementById('zoneFilter') ? document.getElementById('zoneFilter').value : '';
+  var filtered = zoneFilter ? allEmployees_.filter(function (e) { return e.zone === zoneFilter; }) : allEmployees_;
+
+  var byName = {};
+  var order = [];
+  filtered.forEach(function (e) {
+    if (!byName[e.name]) { byName[e.name] = { name: e.name, designation: e.designation, zone: e.zone, email: e.email, loginExempt: e.loginExempt, cfls: [] }; order.push(e.name); }
+    if (e.cfl) byName[e.name].cfls.push(e.cfl + (e.district ? ' (' + e.district + ')' : ''));
+  });
+
+  var tb = document.getElementById('empTbody');
+  if (!order.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">Koi employee nahi mila.</td></tr>'; return; }
+  tb.innerHTML = '';
+  order.forEach(function (name, i) {
+    var e = byName[name];
+    var rowId = 'row' + i;
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + esc_(e.name) + '</td>' +
+      '<td>' + esc_(e.designation) + '<br><span style="color:#6e7781;font-size:11px;">' + esc_(e.zone) + '</span></td>' +
+      '<td style="max-width:220px;white-space:normal;font-size:11.5px;color:#374151;">' + esc_(e.cfls.join(', ')) + '</td>' +
+      '<td><input type="email" id="' + rowId + '_email" value="' + esc_(e.email) + '" placeholder="email@example.com"></td>' +
+      '<td style="text-align:center;"><input type="checkbox" id="' + rowId + '_exempt"' + (e.loginExempt ? ' checked' : '') + '></td>' +
+      '<td><button class="save-btn" data-name="' + esc_(e.name) + '" data-rowid="' + rowId + '">Save</button>' +
+      '<div class="status" id="' + rowId + '_status"></div></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.save-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      saveEmployee_(btn.getAttribute('data-name'), btn.getAttribute('data-rowid'));
+    });
+  });
+}
+
+function saveEmployee_(name, rowId) {
+  var email = document.getElementById(rowId + '_email').value.trim();
+  var exempt = document.getElementById(rowId + '_exempt').checked;
+  var statusEl = document.getElementById(rowId + '_status');
+  statusEl.className = 'status'; statusEl.textContent = 'Saving...';
+  google.script.run.withSuccessHandler(function () {
+    statusEl.className = 'status ok'; statusEl.textContent = '✅ Saved';
+  }).withFailureHandler(function (err) {
+    statusEl.className = 'status err'; statusEl.textContent = 'Error: ' + (err.message || err);
+  }).adminUpdateEmployee(name, email, exempt);
+}
+
+function esc_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
