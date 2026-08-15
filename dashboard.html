@@ -46,7 +46,8 @@
   .kpi.red .num{color:var(--red);}
   .kpi.amber .num{color:var(--amber);}
 
-  .pie-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+  .pie-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:640px){ .pie-row{grid-template-columns:1fr;} }
   .pie-block{display:flex;align-items:center;gap:14px;background:#fbfcfe;border:1px solid var(--border);border-radius:12px;padding:12px;}
   .pie-block svg{flex-shrink:0;}
   .pie-legend{font-size:11.5px;line-height:1.7;}
@@ -76,6 +77,13 @@
     .bar-chart{gap:12px;}
     .bar-chart-col{width:54px;}
     .bar-chart-bar{width:34px;}
+  }
+  @media print {
+    .menu-toggle, .menu-overlay, .side-menu, #printBtn,
+    .toggle-row button:not(.active), .backlink { display: none !important; }
+    body { background: #fff; }
+    .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+    .wrap { max-width: 100%; }
   }
 </style>
 
@@ -126,7 +134,35 @@ if ('serviceWorker' in navigator) {
   <div class="toggle-row">
     <button id="btnCFL" class="active" onclick="load('CFL')">CFL Monitoring (17 indicators)</button>
     <button id="btnSESSION" onclick="load('SESSION')">Session Monitoring (14 indicators)</button>
+    <button id="printBtn" onclick="window.print()" style="background:#1a7f37;color:#fff;border-color:#1a7f37;">🖨️ Download as PDF</button>
     <button onclick="load(currentType)" style="margin-left:auto;">🔄 Refresh</button>
+  </div>
+
+  <div class="card" style="padding:14px 16px;">
+    <h2 style="font-size:14px;margin-bottom:10px;">🔍 Filter by</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+      <div>
+        <label style="font-size:11.5px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Area Manager</label>
+        <select id="filterOfficer" onchange="onFilterChange_()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #dde3ea;">
+          <option value="">-- Sabhi --</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">CFL</label>
+        <select id="filterCfl" onchange="onFilterChange_()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #dde3ea;">
+          <option value="">-- Sabhi --</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">District</label>
+        <select id="filterDistrict" onchange="onFilterChange_()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #dde3ea;">
+          <option value="">-- Sabhi --</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button type="button" onclick="clearFilters_()" style="padding:8px 14px;border-radius:8px;border:1px solid #dde3ea;background:#fff;cursor:pointer;font-size:12.5px;">✕ Filters Hataayein</button>
+      </div>
+    </div>
   </div>
 
   <div class="kpis" id="kpis"></div>
@@ -139,6 +175,11 @@ if ('serviceWorker' in navigator) {
   <div class="card">
     <h2>Grading System <small>Number of visits by grade (A / B / C / D)</small></h2>
     <div id="gradeBarChart"></div>
+  </div>
+
+  <div class="card">
+    <h2>CFL Grading Trend <small>Grade counts month-wise — kaise badal raha hai</small></h2>
+    <div id="gradeTrendChart"><div class="empty">Loading...</div></div>
   </div>
 
   <div class="card">
@@ -157,13 +198,48 @@ if ('serviceWorker' in navigator) {
 <script>
 var currentType = 'CFL';
 
+var currentFilters = { officerName: '', cflName: '', district: '' };
+
 function load(type) {
   currentType = type;
   document.getElementById('btnCFL').classList.toggle('active', type === 'CFL');
   document.getElementById('btnSESSION').classList.toggle('active', type === 'SESSION');
   document.getElementById('indicatorPies').innerHTML = '<div class="empty">Loading...</div>';
   document.getElementById('visitTbody').innerHTML = '<tr><td colspan="10" class="empty">Loading...</td></tr>';
-  google.script.run.withSuccessHandler(render).withFailureHandler(showErr).getDashboardData(type);
+  google.script.run.withSuccessHandler(render).withFailureHandler(showErr).getDashboardData(type, currentFilters);
+}
+
+function onFilterChange_() {
+  currentFilters.officerName = document.getElementById('filterOfficer').value;
+  currentFilters.cflName = document.getElementById('filterCfl').value;
+  currentFilters.district = document.getElementById('filterDistrict').value;
+  load(currentType);
+}
+
+function clearFilters_() {
+  document.getElementById('filterOfficer').value = '';
+  document.getElementById('filterCfl').value = '';
+  document.getElementById('filterDistrict').value = '';
+  currentFilters = { officerName: '', cflName: '', district: '' };
+  load(currentType);
+}
+
+function populateFilterDropdowns_(opts) {
+  if (!opts) return;
+  var fillOne = function (id, values, current) {
+    var sel = document.getElementById(id);
+    var keepValue = current || sel.value;
+    sel.innerHTML = '<option value="">-- Sabhi --</option>';
+    values.forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+    sel.value = keepValue;
+  };
+  fillOne('filterOfficer', opts.officers || [], currentFilters.officerName);
+  fillOne('filterCfl', opts.cfls || [], currentFilters.cflName);
+  fillOne('filterDistrict', opts.districts || [], currentFilters.district);
 }
 
 function showErr(err) {
@@ -172,9 +248,11 @@ function showErr(err) {
 
 function render(d) {
   if (!d) { showErr({message:'No data returned'}); return; }
+  populateFilterDropdowns_(d.filterOptions);
   renderKpis(d.summary);
   renderIndicatorPies(d.indicatorStats);
   renderGradeBarChart(d.summary.grades, d.summary.totalVisits);
+  renderGradeTrend(d.gradeTrend);
   renderTable(d.rows);
 }
 
@@ -191,61 +269,125 @@ function kpi(num, lbl, cls) {
   return '<div class="kpi ' + cls + '"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
 }
 
-// ---- Indicator-wise compliance as 2-3 pie charts (grouped for readability) ----
+// ---- Indicator-wise compliance as bar charts — 6 boxes (2 per row x 3 rows), full heading text ----
 function renderIndicatorPies(stats) {
   var c = document.getElementById('indicatorPies');
   if (!stats.length || !stats[0].count) {
-    c.innerHTML = '<div class="empty">Abhi tak koi submission nahi hai is report type ke liye.</div>';
+    c.innerHTML = '<div class="empty">Abhi tak koi submission nahi hai is filter/report type ke liye.</div>';
     return;
   }
-  var numGroups = stats.length > 12 ? 3 : 2;
+  var numGroups = Math.min(6, stats.length);
   var groupSize = Math.ceil(stats.length / numGroups);
   var groups = [];
   for (var i = 0; i < stats.length; i += groupSize) groups.push(stats.slice(i, i + groupSize));
 
   c.innerHTML = '';
-  groups.forEach(function (g, gi) {
+  groups.forEach(function (g) {
     var wrap = document.createElement('div');
     var firstSr = g[0].sr, lastSr = g[g.length - 1].sr;
-    var pieData = g.map(function (s, i) {
-      return { label: 'Sr' + s.sr + ' ' + s.text, value: Math.max(s.avgPct, 0.1), color: distinctColor_(i) };
+    var barData = g.map(function (s, i) {
+      return { label: 'Sr' + s.sr + ' — ' + s.text, value: s.avgPct, color: distinctColor_(i) };
     });
-    wrap.innerHTML = '<div class="pie-title">Indicators Sr' + firstSr + '–' + lastSr + '</div>' + pieSvg_(pieData);
+    wrap.innerHTML = '<div class="pie-title">Indicators Sr' + firstSr + '–' + lastSr + '</div>' + indicatorBarSvg_(barData);
     c.appendChild(wrap);
   });
 }
 
-// A fixed palette of visually distinct colors, one per pie slice — cycles
-// if a group has more indicators than colors.
+// A fixed palette of visually distinct colors, one per bar — cycles if a
+// group has more indicators than colors.
 var PIE_PALETTE = ['#0b5cab', '#1a7f37', '#cf222e', '#9a6700', '#8250df', '#0969da',
   '#bf3989', '#1b7c83', '#c4380d', '#4a5568', '#2da44e', '#a40e26'];
 function distinctColor_(i) { return PIE_PALETTE[i % PIE_PALETTE.length]; }
 
-function pieSvg_(data) {
-  var total = data.reduce(function (s, d) { return s + d.value; }, 0) || 1;
-  var cx = 60, cy = 60, r = 55, startAngle = -90, paths = '';
-  data.forEach(function (d) {
-    var angle = (d.value / total) * 360;
-    var endAngle = startAngle + angle;
-    var large = angle > 180 ? 1 : 0;
-    var x1 = cx + r * Math.cos(startAngle * Math.PI / 180), y1 = cy + r * Math.sin(startAngle * Math.PI / 180);
-    var x2 = cx + r * Math.cos(endAngle * Math.PI / 180), y2 = cy + r * Math.sin(endAngle * Math.PI / 180);
-    var d0 = data.length === 1 ?
-      ('M' + cx + ',' + cy + ' m -' + r + ',0 a ' + r + ',' + r + ' 0 1,0 ' + (r * 2) + ',0 a ' + r + ',' + r + ' 0 1,0 -' + (r * 2) + ',0') :
-      ('M' + cx + ',' + cy + ' L' + x1 + ',' + y1 + ' A' + r + ',' + r + ' 0 ' + large + ' 1 ' + x2 + ',' + y2 + ' Z');
-    paths += '<path d="' + d0 + '" fill="' + d.color + '" stroke="#fff" stroke-width="1.5"><title>' +
-      escXml_(d.label) + ': ' + d.value.toFixed(1) + '%</title></path>';
-    startAngle = endAngle;
+// Horizontal bar chart — one bar per indicator, showing the FULL heading
+// text as the label (wrapped across up to 2 lines if long).
+function indicatorBarSvg_(data) {
+  var rowH = 40, gap = 8, leftW = 190, chartW = 140, svgH = data.length * (rowH + gap);
+  var maxVal = 100;
+  var bars = '';
+  data.forEach(function (d, i) {
+    var y = i * (rowH + gap);
+    var barW = Math.max(2, (d.value / maxVal) * chartW);
+    var lines = wrapText_(d.label, 30); // up to ~2 lines of ~30 chars each
+    lines.forEach(function (ln, li) {
+      bars += '<text x="' + (leftW - 8) + '" y="' + (y + rowH / 2 - (lines.length > 1 ? 6 : 0) + li * 13 + 4) +
+        '" text-anchor="end" font-size="10.5" fill="#374151">' + escXml_(ln) + '</text>';
+    });
+    bars += '<rect x="' + leftW + '" y="' + (y + rowH / 2 - 9) + '" width="' + chartW + '" height="18" fill="#f1f4f8" rx="4"></rect>';
+    bars += '<rect x="' + leftW + '" y="' + (y + rowH / 2 - 9) + '" width="' + barW + '" height="18" fill="' + d.color + '" rx="4"><title>' +
+      escXml_(d.label) + ': ' + d.value.toFixed(1) + '%</title></rect>';
+    bars += '<text x="' + (leftW + chartW + 8) + '" y="' + (y + rowH / 2 + 4) + '" font-size="11" font-weight="700" fill="#1f2328">' + d.value.toFixed(0) + '%</text>';
   });
-  var legend = data.map(function (d) {
-    return '<div class="pie-legend-item"><span class="pie-dot" style="background:' + d.color + '"></span>' +
-      escXml_(d.label.length > 42 ? d.label.substring(0, 42) + '…' : d.label) + ' — ' + d.value.toFixed(0) + '%</div>';
-  }).join('');
-  return '<div class="pie-block"><svg viewBox="0 0 120 120" width="120" height="120">' + paths + '</svg>' +
-    '<div class="pie-legend">' + legend + '</div></div>';
+  return '<svg viewBox="0 0 ' + (leftW + chartW + 40) + ' ' + svgH + '" width="100%" style="max-width:480px;height:auto;">' + bars + '</svg>';
+}
+
+// Simple word-wrap for SVG text (SVG has no native wrapping) — splits into
+// at most 2 lines around maxChars, breaking on word boundaries.
+function wrapText_(text, maxChars) {
+  if (text.length <= maxChars) return [text];
+  var words = text.split(' ');
+  var line1 = '', line2 = '';
+  words.forEach(function (w) {
+    if ((line1 + ' ' + w).trim().length <= maxChars && !line2) {
+      line1 = (line1 + ' ' + w).trim();
+    } else {
+      line2 = (line2 + ' ' + w).trim();
+    }
+  });
+  if (line2.length > maxChars) line2 = line2.substring(0, maxChars - 1) + '…';
+  return line2 ? [line1, line2] : [line1];
 }
 
 function escXml_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ---- CFL Grading Trend — grade counts per month, as a LINE chart ----
+function renderGradeTrend(trend) {
+  var c = document.getElementById('gradeTrendChart');
+  if (!c) return;
+  if (!trend || !trend.length) { c.innerHTML = '<div class="empty">Trend dikhane ke liye kam se kam ek mahine ka data chahiye.</div>'; return; }
+
+  var order = [['A', '#1a7f37'], ['B', '#0b5cab'], ['C', '#9a6700'], ['D', '#cf222e']];
+  var maxN = 1;
+  trend.forEach(function (m) { order.forEach(function (o) { maxN = Math.max(maxN, m[o[0]] || 0); }); });
+
+  var leftPad = 34, rightPad = 20, topPad = 16, chartH = 180;
+  var pointGap = trend.length > 1 ? Math.max(60, Math.min(110, 640 / (trend.length - 1))) : 100;
+  var totalW = leftPad + rightPad + Math.max(1, trend.length - 1) * pointGap + 20;
+
+  var xFor = function (i) { return leftPad + i * pointGap; };
+  var yFor = function (v) { return topPad + chartH - (maxN ? (v / maxN) * chartH : 0); };
+
+  var svg = '';
+  // Y-axis gridlines
+  [0, 0.25, 0.5, 0.75, 1].forEach(function (f) {
+    var val = Math.round(maxN * f);
+    var y = topPad + chartH - f * chartH;
+    svg += '<line x1="' + leftPad + '" y1="' + y + '" x2="' + (totalW - rightPad) + '" y2="' + y + '" stroke="#eee" stroke-width="1"></line>';
+    svg += '<text x="4" y="' + (y + 3) + '" font-size="9.5" fill="#9aa4b2">' + val + '</text>';
+  });
+
+  order.forEach(function (o) {
+    var pts = trend.map(function (m, i) { return xFor(i) + ',' + yFor(m[o[0]] || 0); }).join(' ');
+    svg += '<polyline points="' + pts + '" fill="none" stroke="' + o[1] + '" stroke-width="2.5"></polyline>';
+    trend.forEach(function (m, i) {
+      var n = m[o[0]] || 0;
+      svg += '<circle cx="' + xFor(i) + '" cy="' + yFor(n) + '" r="4" fill="' + o[1] + '"><title>' +
+        escXml_(m.label) + ' — Grade ' + o[0] + ': ' + n + '</title></circle>';
+    });
+  });
+
+  trend.forEach(function (m, i) {
+    svg += '<text x="' + xFor(i) + '" y="' + (topPad + chartH + 18) + '" text-anchor="middle" font-size="10.5" fill="#374151">' + escXml_(m.label) + '</text>';
+  });
+
+  var legend = order.map(function (o) {
+    return '<span style="display:inline-flex;align-items:center;gap:4px;margin-right:14px;font-size:11.5px;color:#374151;">' +
+      '<span style="width:14px;height:3px;background:' + o[1] + ';display:inline-block;"></span>Grade ' + o[0] + '</span>';
+  }).join('');
+
+  c.innerHTML = '<div style="overflow-x:auto;"><svg viewBox="0 0 ' + totalW + ' ' + (topPad + chartH + 32) + '" width="' + Math.min(totalW, 700) + '" height="' + (topPad + chartH + 32) + '">' + svg + '</svg></div>' +
+    '<div style="margin-top:8px;">' + legend + '</div>';
+}
 
 // ---- Grading system as a vertical bar chart ----
 function renderGradeBarChart(grades, total) {
@@ -288,8 +430,6 @@ function renderTable(rows) {
 }
 
 function esc_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-tryResumeSession_(true); // resumes an existing admin session, or leaves the login gate showing
 </script>
 
 <script>
@@ -354,6 +494,8 @@ function doLogin_() {
     errEl.textContent = 'Error: ' + (err.message || err);
   }).checkLoginEmail(email);
 }
+
+tryResumeSession_(true); // resumes an existing admin session, or leaves the login gate showing
 </script>
 </body>
 </html>

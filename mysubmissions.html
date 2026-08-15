@@ -61,8 +61,8 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <div class="wrap">
-  <h1>📄 My Submissions</h1>
-  <div class="sub">Sirf aapke khud ke submissions yahan dikhte hain</div>
+  <h1 id="pageTitle">📄 My Submissions</h1>
+  <div class="sub" id="pageSub">Sirf aapke khud ke submissions yahan dikhte hain</div>
   <div id="list"><div class="empty">Loading...</div></div>
 </div>
 
@@ -74,6 +74,7 @@ function toggleMenu_() {
 }
 
 var myLoginId = '';
+var myIsAdmin = false;
 
 // ---------------------------------------------------------------------
 // SESSION — login once, stays logged in across pages for 12 hours.
@@ -101,7 +102,8 @@ function logout_() {
 function tryResumeSession_() {
   var sess = loadSession_();
   if (!sess) return false;
-  myLoginId = sess.email.indexOf('NOLOGIN:') === 0 ? sess.email : sess.email;
+  myLoginId = sess.email;
+  myIsAdmin = !!sess.isAdmin;
   document.getElementById('loginGate').style.display = 'none';
   loadSubmissions_();
   return true;
@@ -122,6 +124,7 @@ function doLogin_() {
       return;
     }
     myLoginId = email;
+    myIsAdmin = !!res.isAdmin;
     saveSession_({ email: email, isAdmin: !!res.isAdmin, officerName: res.name || '' });
     document.getElementById('loginGate').style.display = 'none';
     loadSubmissions_();
@@ -132,9 +135,13 @@ function doLogin_() {
 }
 
 function loadSubmissions_() {
+  if (myIsAdmin) {
+    document.getElementById('pageTitle').textContent = '📄 All Submissions (Admin View)';
+    document.getElementById('pageSub').textContent = 'Sabhi Area Managers ke submissions yahan dikhte hain';
+  }
   google.script.run.withSuccessHandler(renderList_).withFailureHandler(function (err) {
     document.getElementById('list').innerHTML = '<div class="empty">Error: ' + (err.message || err) + '</div>';
-  }).getMySubmissions(myLoginId);
+  }).getMySubmissions(myLoginId, myIsAdmin);
 }
 
 function renderList_(list) {
@@ -146,7 +153,8 @@ function renderList_(list) {
     div.className = 'card';
     div.innerHTML =
       '<div class="top"><div><h3>' + esc_(s.cflName) + ' — ' + esc_(s.reportType) + '</h3>' +
-      '<div class="meta">Visit Date: ' + esc_(s.visitDate) + ' · Score: ' + s.scorePct + '% · Grade <span class="grade-pill">' + esc_(s.grade) + '</span></div></div>' +
+      '<div class="meta">' + (myIsAdmin ? 'Officer: <b>' + esc_(s.officerName) + '</b> · ' : '') +
+      'Visit Date: ' + esc_(s.visitDate) + ' · Score: ' + s.scorePct + '% · Grade <span class="grade-pill">' + esc_(s.grade) + '</span></div></div>' +
       '<button class="req-btn" data-idx="' + i + '">✏️ Request Edit</button></div>' +
       '<div class="links" style="margin-top:8px;">' +
       (s.pdfLink ? '<a href="' + s.pdfLink + '" target="_blank">PDF</a>' : '') +
