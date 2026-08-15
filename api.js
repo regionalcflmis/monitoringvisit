@@ -17,7 +17,7 @@
  */
 
 // ⬇️ PASTE YOUR APPS SCRIPT WEB APP /exec URL HERE (see README step 2)
-var API_URL = 'https://script.google.com/macros/s/AKfycbzwu3imPPEIT3dh_SpV2SuNO2IDoTYgFmFXnL8VtKS2yCwuVv5UNxNk7oBDglzn-pBmZw/exec';
+var API_URL = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
 
 (function () {
   function callServer(fnName, args) {
