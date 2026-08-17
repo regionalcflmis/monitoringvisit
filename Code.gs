@@ -31,7 +31,7 @@ var TAT_LIMIT_DAYS     = 7;   // <=7 days => Green, else Red (per your instructi
 // Edit this list (max 5) whenever the recipients need to change.
 var RECIPIENT_EMAILS = [
   'regionalcflmis@gmail.com',
-];
+  ];
 // ---------------------------------------------------------------------
 // ONE-TIME SETUP
 // ---------------------------------------------------------------------
