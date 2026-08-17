@@ -30,10 +30,8 @@ var TAT_LIMIT_DAYS     = 7;   // <=7 days => Green, else Red (per your instructi
 // auto-emailed to exactly this fixed list on every submit, silently.
 // Edit this list (max 5) whenever the recipients need to change.
 var RECIPIENT_EMAILS = [
-  'vivek.mishra@ext-crisil.com',
-  'regionalcflmis@gmail.com','vinay.sharma1@ext-crisil.com'
+  'regionalcflmis@gmail.com',
 ];
-
 // ---------------------------------------------------------------------
 // ONE-TIME SETUP
 // ---------------------------------------------------------------------
