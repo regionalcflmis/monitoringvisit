@@ -31,13 +31,9 @@
 </style>
 
 <style>
-  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
-  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
-  .side-menu.open{transform:translateX(0);}
-  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;border-left:3px solid transparent;}
-  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);border-left-color:#fff;}
-  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
-  .menu-overlay.open{display:block;}
+  .top-menu{position:sticky;top:0;left:0;right:0;background:#08427a;z-index:160;display:flex;flex-wrap:wrap;gap:4px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+  .top-menu a{display:inline-block;padding:8px 14px;color:#e8f0fb;text-decoration:none;font-size:12.5px;font-weight:600;border-radius:8px;}
+  .top-menu a:hover,.top-menu a.active{background:rgba(255,255,255,.15);}
 </style>
 
 <script src="api.js"></script>
@@ -60,9 +56,7 @@ if ('serviceWorker' in navigator) {
     <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
   </div>
 </div>
-<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
-<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
-<div class="side-menu" id="sideMenu">
+<div class="top-menu" id="sideMenu">
   <a href="home.html" class="active">🏠 Home</a>
   <a href="index.html">📋 Form Entry</a>
   <a href="mysubmissions.html">📄 My Submissions</a>
@@ -73,6 +67,8 @@ if ('serviceWorker' in navigator) {
 <div class="wrap">
   <h1>MoneyWise CFL Monitoring System</h1>
   <div class="sub">Ek hi jagah se saare forms aur dashboard access karein</div>
+
+  <div id="activitySummary" class="note" style="text-align:left;margin-bottom:20px;">Loading activity summary...</div>
 
   <div class="cards">
     <a class="card" href="index.html">
@@ -98,10 +94,7 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <script>
-function toggleMenu_() {
-  document.getElementById('sideMenu').classList.toggle('open');
-  document.getElementById('menuOverlay').classList.toggle('open');
-}
+function toggleMenu_() { /* no-op — menu is now a top bar, always visible */ }
 </script>
 
 <script>
@@ -133,6 +126,7 @@ function tryResumeSession_() {
   var sess = loadSession_();
   if (!sess || !sess.isAdmin) return false;
   document.getElementById('loginGate').style.display = 'none';
+  loadActivitySummary_();
   return true;
 }
 tryResumeSession_();
@@ -152,10 +146,59 @@ function doLogin_() {
     }
     saveSession_({ email: email, isAdmin: true, officerName: res.name || '' });
     document.getElementById('loginGate').style.display = 'none';
+    loadActivitySummary_();
   }).withFailureHandler(function (err) {
     errEl.style.color = '#cf222e';
     errEl.textContent = 'Error: ' + (err.message || err);
-  }).checkLoginEmail(email);
+  }).checkLoginConsultantId(email);
+}
+
+function loadActivitySummary_() {
+  google.script.run.withSuccessHandler(renderActivitySummary_).withFailureHandler(function (err) {
+    document.getElementById('activitySummary').textContent = 'Summary load nahi ho payi: ' + (err.message || err);
+  }).getSubmissionActivitySummary();
+}
+
+function renderActivitySummary_(s) {
+  var el = document.getElementById('activitySummary');
+  if (!s) { el.textContent = 'Koi data nahi mila.'; return; }
+  var esc = function (t) { return (t || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+
+  var thStyle = 'text-align:left;padding:8px 10px;background:#f1f4f8;color:#374151;font-size:11.5px;font-weight:700;border-bottom:2px solid #dde3ea;';
+  var tdStyle = 'padding:7px 10px;font-size:12.5px;border-bottom:1px solid #eee;color:#1f2328;';
+
+  var dateRows = s.last14Days.slice(0, 7).map(function (d) {
+    return '<tr><td style="' + tdStyle + '">' + esc(d.date) + '</td>' +
+      '<td style="' + tdStyle + 'text-align:right;font-weight:700;color:' + (d.count > 0 ? '#1a7f37' : '#9aa4b2') + ';">' + d.count + '</td></tr>';
+  }).join('');
+
+  var officerRows = s.byOfficer.slice(0, 10).map(function (o) {
+    return '<tr><td style="' + tdStyle + '">' + esc(o.name) + '</td>' +
+      '<td style="' + tdStyle + 'text-align:right;font-weight:700;">' + o.count + '</td></tr>';
+  }).join('');
+
+  el.innerHTML =
+    '<div style="font-weight:800;color:#08427a;font-size:14px;margin-bottom:14px;">📊 Submission Activity Summary</div>' +
+    '<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px;">' +
+      '<div><div style="font-size:24px;font-weight:800;color:#0b5cab;">' + s.total + '</div><div style="font-size:11px;color:#6e7781;">Total Submissions</div></div>' +
+      '<div><div style="font-size:24px;font-weight:800;color:#1a7f37;">' + s.today + '</div><div style="font-size:11px;color:#6e7781;">Aaj</div></div>' +
+      '<div><div style="font-size:24px;font-weight:800;color:#9a6700;">' + s.officersReported + '</div><div style="font-size:11px;color:#6e7781;">Officers ne bhara</div></div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">' +
+      '<div>' +
+        '<div style="font-size:11.5px;font-weight:700;color:#374151;margin-bottom:8px;">Pichle 7 Din</div>' +
+        '<table style="width:100%;border-collapse:collapse;"><thead><tr>' +
+          '<th style="' + thStyle + '">Date</th><th style="' + thStyle + 'text-align:right;">Submissions</th>' +
+        '</tr></thead><tbody>' + dateRows + '</tbody></table>' +
+      '</div>' +
+      '<div>' +
+        '<div style="font-size:11.5px;font-weight:700;color:#374151;margin-bottom:8px;">Officer-wise (Top 10)</div>' +
+        '<table style="width:100%;border-collapse:collapse;"><thead><tr>' +
+          '<th style="' + thStyle + '">Officer</th><th style="' + thStyle + 'text-align:right;">Count</th>' +
+        '</tr></thead><tbody>' + (officerRows || '<tr><td colspan="2" style="' + tdStyle + 'color:#9aa4b2;">Abhi tak koi submission nahi.</td></tr>') + '</tbody></table>' +
+      '</div>' +
+    '</div>' +
+    (s.driveFolderUrl ? '<div style="margin-top:16px;"><a href="' + s.driveFolderUrl + '" target="_blank" style="font-size:12.5px;color:#0b5cab;font-weight:700;">📁 Photos/Reports ka Drive folder kholein ("' + s.driveFolderName + '")</a></div>' : '');
 }
 </script>
 </body>

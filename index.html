@@ -141,13 +141,9 @@
 </style>
 
 <style>
-  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
-  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
-  .side-menu.open{transform:translateX(0);}
-  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;border-left:3px solid transparent;}
-  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);border-left-color:#fff;}
-  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
-  .menu-overlay.open{display:block;}
+  .top-menu{position:sticky;top:0;left:0;right:0;background:#08427a;z-index:160;display:flex;flex-wrap:wrap;gap:4px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+  .top-menu a{display:inline-block;padding:8px 14px;color:#e8f0fb;text-decoration:none;font-size:12.5px;font-weight:600;border-radius:8px;}
+  .top-menu a:hover,.top-menu a.active{background:rgba(255,255,255,.15);}
 </style>
 
 <script src="api.js"></script>
@@ -160,9 +156,7 @@ if ('serviceWorker' in navigator) {
 </script>
 </head>
 <body>
-<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
-<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
-<div class="side-menu" id="sideMenu">
+<div class="top-menu" id="sideMenu">
   <a href="home.html">🏠 Home</a>
   <a href="index.html" class="active">📋 Form Entry</a>
   <a href="mysubmissions.html">📄 My Submissions</a>
@@ -174,13 +168,13 @@ if ('serviceWorker' in navigator) {
   <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
     <div style="font-size:32px;margin-bottom:8px;">🔒</div>
     <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Login Required</h2>
-    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Aage badhne ke liye apna email daalein</div>
-    <input type="email" id="loginEmail" placeholder="aapka.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
+    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Aage badhne ke liye apna Consultant ID daalein (Admin apna email daalein)</div>
+    <input type="text" id="loginEmail" placeholder="Consultant ID (ya Admin ka email)" autocomplete="off" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
     <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
     <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login &amp; Continue</button>
 
     <div id="noEmailToggle" style="margin-top:14px;font-size:12px;">
-      <a href="#" onclick="showNoEmailLogin_();return false;" style="color:#6e7781;text-decoration:underline;">Email nahi hai? Yahan click karein</a>
+      <a href="#" onclick="showNoEmailLogin_();return false;" style="color:#6e7781;text-decoration:underline;">Consultant ID nahi pata? Yahan click karein</a>
     </div>
     <div id="noEmailBox" style="display:none;margin-top:12px;padding-top:14px;border-top:1px solid #eee;text-align:left;">
       <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Apna naam select karein</label>
@@ -497,7 +491,7 @@ function applyCflScope_() {
     });
   }).withFailureHandler(function (err) {
     console.error('CFL scope filter failed:', err);
-  }).getEmployeeAssignedCFLs(loggedInOfficerName);
+  }).getEmployeeAssignedCFLs(loggedInEmail);
 
   // Lock Officer Name to the logged-in person (only once options exist).
   var officerSel = document.getElementById('officerName');
@@ -534,7 +528,7 @@ function loadBottomSubmissionsList_() {
         }).requestEditPermission(s.submissionId, s.reportType, reason, loggedInEmail);
       });
     });
-  }).withFailureHandler(function () {}).getMySubmissions(loggedInEmail);
+  }).withFailureHandler(function () {}).getMySubmissions(loggedInOfficerName, isAdmin);
 }
 
 // Checks if this logged-in person has an approved edit waiting — shows a
@@ -596,7 +590,7 @@ function startEditSubmission_(submissionId, reportType, requestRow) {
 // Area Managers only get Form Entry — Dashboard (and the Home portal
 // link, if present) are hidden unless logged in as an admin.
 function applyRoleVisibility_() {
-  document.querySelectorAll('.side-menu a').forEach(function (a) {
+  document.querySelectorAll('.top-menu a').forEach(function (a) {
     var href = a.getAttribute('href') || '';
     var isAdminOnly = href.indexOf('dashboard') > -1 || href.indexOf('page=dashboard') > -1 ||
       href.indexOf('home') > -1 || href.indexOf('page=home') > -1 ||
@@ -653,12 +647,11 @@ function doExemptLogin_() {
 }
 
 function doLogin_() {
-  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var consultantId = document.getElementById('loginEmail').value.trim();
   var errEl = document.getElementById('loginError');
   var btn = document.querySelector('#loginGate button');
-  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!pattern.test(email)) {
-    errEl.textContent = 'Sahi email address daalein.';
+  if (!consultantId) {
+    errEl.textContent = 'Apna Consultant ID daalein.';
     return;
   }
   errEl.style.color = '#6e7781';
@@ -668,15 +661,15 @@ function doLogin_() {
     btn.disabled = false;
     if (!res || !res.ok) {
       errEl.style.color = '#cf222e';
-      errEl.textContent = 'Ye email registered nahi hai. Employee Master me apna email check karayein.';
+      errEl.textContent = 'Ye Consultant ID registered nahi hai. Admin se check karayein.';
       return;
     }
-    loggedInEmail = email;
+    loggedInEmail = consultantId;
     isAdmin = !!res.isAdmin;
     loggedInOfficerName = res.name || '';
-    saveSession_({ email: email, isAdmin: isAdmin, officerName: loggedInOfficerName });
+    saveSession_({ email: consultantId, isAdmin: isAdmin, officerName: loggedInOfficerName });
     document.getElementById('loginGate').style.display = 'none';
-    document.getElementById('loggedInUserBar').innerHTML = '🔒 Logged in as: ' + email + (res.name ? ' (' + res.name + ')' : '') +
+    document.getElementById('loggedInUserBar').innerHTML = '🔒 Logged in as: ' + (res.name || consultantId) + ' (' + consultantId + ')' +
       ' &nbsp;·&nbsp; <a href="#" onclick="logout_();return false;" style="color:#cf222e;">Logout</a>';
     applyRoleVisibility_();
     applyCflScope_();
@@ -686,7 +679,7 @@ function doLogin_() {
     btn.disabled = false;
     errEl.style.color = '#cf222e';
     errEl.textContent = 'Verify nahi ho paya: ' + (err.message || err);
-  }).checkLoginEmail(email);
+  }).checkLoginConsultantId(consultantId);
 }
 
 var BOOT = null;
@@ -1263,11 +1256,11 @@ function proceedWithSubmit_(cflName, visitDate, officerName, officerDesignation,
       document.getElementById('submitBtn').disabled = false;
       status.className = 'msg err';
       status.textContent = '❌ ' + msg;
-    }, officerName);
+    }, officerName, cflName);
   });
 }
 
-function uploadAllPhotos_(cb, status, onError, officerName) {
+function uploadAllPhotos_(cb, status, onError, officerName, cflName) {
   var results = []; var i = 0;
   var TIMEOUT_MS = 30000; // if a single photo hangs this long, treat it as failed
   function next() {
@@ -1293,7 +1286,7 @@ function uploadAllPhotos_(cb, status, onError, officerName) {
         clearTimeout(timer);
         onError('Photo ' + (i + 1) + ' upload fail ho gayi: ' + (err.message || err));
       })
-      .uploadPhoto(photos[i].dataUrl, photos[i].filename || ('photo' + i + '.jpg'), 'image/jpeg', officerName || '');
+      .uploadPhoto(photos[i].dataUrl, photos[i].filename || ('photo' + i + '.jpg'), 'image/jpeg', officerName || '', cflName || '');
   }
   next();
 }
@@ -1333,10 +1326,7 @@ function onSubmitError(err) {
 </script>
 
 <script>
-function toggleMenu_() {
-  document.getElementById('sideMenu').classList.toggle('open');
-  document.getElementById('menuOverlay').classList.toggle('open');
-}
+function toggleMenu_() { /* no-op — menu is now a top bar, always visible */ }
 </script>
 </body>
 </html>

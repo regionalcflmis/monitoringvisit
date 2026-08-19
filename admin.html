@@ -22,16 +22,14 @@
   tr:nth-child(even) td{background:#fafbfc;}
   input[type=email]{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
   .save-btn{background:var(--blue);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;}
+  .tab-btn{padding:10px 16px;border-radius:10px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-weight:700;cursor:pointer;font-size:13px;}
+  .tab-btn.active{background:var(--blue);color:#fff;}
   .save-btn:disabled{opacity:.5;}
   .status{font-size:11px;margin-top:4px;}
   .status.ok{color:var(--green);} .status.err{color:var(--red);}
-  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
-  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
-  .side-menu.open{transform:translateX(0);}
-  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;}
-  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);}
-  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
-  .menu-overlay.open{display:block;}
+  .top-menu{position:sticky;top:0;left:0;right:0;background:#08427a;z-index:160;display:flex;flex-wrap:wrap;gap:4px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+  .top-menu a{display:inline-block;padding:8px 14px;color:#e8f0fb;text-decoration:none;font-size:12.5px;font-weight:600;border-radius:8px;}
+  .top-menu a:hover,.top-menu a.active{background:rgba(255,255,255,.15);}
   .empty{color:var(--gray);padding:14px;text-align:center;}
 </style>
 
@@ -56,9 +54,7 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
-<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
-<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
-<div class="side-menu" id="sideMenu">
+<div class="top-menu" id="sideMenu">
   <a href="home.html">🏠 Home</a>
   <a href="index.html">📋 Form Entry</a>
   <a href="mysubmissions.html">📄 My Submissions</a>
@@ -69,59 +65,70 @@ if ('serviceWorker' in navigator) {
 
 <div class="wrap">
   <h1>⚙️ Admin Panel</h1>
-  <div class="sub">Employee email edit karein, naya officer/CFL assignment add karein, aur edit requests approve karein</div>
+  <div class="sub">Employee email edit karein, naya officer/CFL assignment add karein, aur edit requests approve karein<br>
+    <span style="color:#9aa4b2;">कर्मचारी ईमेल संपादित करें, नया अधिकारी/सीएफएल असाइनमेंट जोड़ें, और एडिट रिक्वेस्ट स्वीकृत करें (Edit employee email, add new officer/CFL assignment, and approve edit requests)</span></div>
 
-  <div class="card">
-    <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">➕ Naya Officer / CFL Assignment Add Karein</h2>
-    <div class="sub" style="margin-bottom:10px;">Naya manager aaye, ya kisi officer ko kisi aur zone/district/CFL me transfer karna ho, to yahan se naya row add karein.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
-      <input id="newName" placeholder="Name">
-      <input id="newDesignation" placeholder="Designation">
-      <input id="newState" placeholder="State">
-      <input id="newDistrict" placeholder="District">
-      <input id="newZone" placeholder="Zone">
-      <input id="newCfl" placeholder="CFL Name">
-      <input id="newEmail" type="email" placeholder="Email (optional)">
-    </div>
-    <button class="save-btn" style="margin-top:10px;" onclick="addNewRow_()">Add Row</button>
-    <div class="status" id="newRowStatus"></div>
+  <div class="tab-row" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+    <button id="tabBtnRequests" class="tab-btn active" onclick="showTab_('requests')">📝 Edit Requests <span id="pendingBadge" style="display:none;background:#cf222e;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;">0</span></button>
+    <button id="tabBtnEmployees" class="tab-btn" onclick="showTab_('employees')">👥 Employees <span style="font-weight:400;">/ कर्मचारी</span></button>
+    <button id="tabBtnAdd" class="tab-btn" onclick="showTab_('add')">➕ New Officer <span style="font-weight:400;">/ नया अधिकारी</span></button>
   </div>
 
-  <div class="card">
-    <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <label style="font-weight:700;font-size:12.5px;color:#374151;">Zone se filter karein:</label>
-      <select id="zoneFilter" onchange="renderEmployees_()" style="padding:8px;border:1px solid #dde3ea;border-radius:6px;font-size:13px;min-width:180px;"><option value="">-- Sab Zones --</option></select>
-      <div class="sub" style="margin:0;">Ek naam ab sirf EK BAAR dikhta hai — email ek baar save karo, unki saari CFL rows apne aap update ho jaati hain.</div>
-    </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr><th>Name</th><th>Designation / Zone</th><th>CFL(s) Assigned</th><th>Email</th><th>Login Exempt<br>(bina email chale)</th><th>Save</th></tr>
-        </thead>
-        <tbody id="empTbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
-      </table>
+  <div id="tabPanelRequests" class="tab-panel">
+    <div class="card">
+      <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">📝 Edit Requests <span style="font-weight:400;font-size:12.5px;color:#6e7781;">/ एडिट रिक्वेस्ट</span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>Submission ID</th><th>Requested By</th><th>Reason</th><th>Status</th><th>Requested At</th><th>Action</th></tr>
+          </thead>
+          <tbody id="reqTbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <div class="card">
-    <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">📝 Edit Requests</h2>
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr><th>Submission ID</th><th>Requested By</th><th>Reason</th><th>Status</th><th>Requested At</th><th>Action</th></tr>
-        </thead>
-        <tbody id="reqTbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
-      </table>
+  <div id="tabPanelEmployees" class="tab-panel" style="display:none;">
+    <div class="card">
+      <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <label style="font-weight:700;font-size:12.5px;color:#374151;">Zone se filter karein:</label>
+        <select id="zoneFilter" onchange="renderEmployees_()" style="padding:8px;border:1px solid #dde3ea;border-radius:6px;font-size:13px;min-width:180px;"><option value="">-- Sab Zones --</option></select>
+        <div class="sub" style="margin:0;">Ek naam ab sirf EK BAAR dikhta hai — email ek baar save karo, unki saari CFL rows apne aap update ho jaati hain.</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Designation / Zone</th><th>CFL(s) Assigned</th><th>Email</th><th>Login Exempt<br>(bina email chale)</th><th>Save</th></tr>
+          </thead>
+          <tbody id="empTbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabPanelAdd" class="tab-panel" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">➕ New Officer / CFL Assignment Add Karein <span style="font-weight:400;font-size:12.5px;color:#6e7781;">/ नया अधिकारी जोड़ें</span></h2>
+      <div class="sub" style="margin-bottom:10px;">Naya manager aaye, ya kisi officer ko kisi aur zone/district/CFL me transfer karna ho, to yahan se naya row add karein.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
+        <input id="newConsultantId" placeholder="Consultant ID *">
+        <input id="newName" placeholder="Name *">
+        <input id="newDesignation" placeholder="Designation">
+        <select id="newState" onchange="onNewStateChange_()"><option value="">-- State --</option></select>
+        <select id="newDistrict" onchange="onNewDistrictChange_()"><option value="">-- District --</option></select>
+        <select id="newZone"><option value="">-- Zone --</option></select>
+        <select id="newCfl"><option value="">-- CFL Name --</option></select>
+        <input id="newEmail" type="email" placeholder="Email (optional)">
+      </div>
+      <button class="save-btn" style="margin-top:10px;" onclick="addNewRow_()">Add Row</button>
+      <div class="status" id="newRowStatus"></div>
     </div>
   </div>
 </div>
 
 <script>
 var WEB_APP_URL = "index.html";
-function toggleMenu_() {
-  document.getElementById('sideMenu').classList.toggle('open');
-  document.getElementById('menuOverlay').classList.toggle('open');
-}
+function toggleMenu_() { /* no-op — menu is now a top bar, always visible */ }
 
 // ---------------------------------------------------------------------
 // SESSION — login once, stays logged in across pages for 12 hours.
@@ -146,12 +153,22 @@ function logout_() {
   if (WEB_APP_URL) { window.top.location.href = 'admin.html'; }
   else { location.reload(); }
 }
+var currentTab = 'requests';
+function showTab_(tab) {
+  currentTab = tab;
+  ['requests', 'employees', 'add'].forEach(function (t) {
+    document.getElementById('tabPanel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
+    document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
+  });
+}
+
 function tryResumeSession_() {
   var sess = loadSession_();
   if (!sess || !sess.isAdmin) return false;
   document.getElementById('loginGate').style.display = 'none';
   loadEmployees_();
   loadEditRequests_();
+  loadCascadingData_();
   return true;
 }
 tryResumeSession_();
@@ -173,14 +190,55 @@ function doLogin_() {
     document.getElementById('loginGate').style.display = 'none';
     loadEmployees_();
     loadEditRequests_();
+    loadCascadingData_();
   }).withFailureHandler(function (err) {
     errEl.style.color = '#cf222e';
     errEl.textContent = 'Error: ' + (err.message || err);
-  }).checkLoginEmail(email);
+  }).checkLoginConsultantId(email);
+}
+
+var CASCADE_DATA = null;
+function loadCascadingData_() {
+  google.script.run.withSuccessHandler(function (d) {
+    CASCADE_DATA = d;
+    var stateSel = document.getElementById('newState');
+    d.states.forEach(function (s) {
+      var o = document.createElement('option'); o.value = s; o.textContent = s; stateSel.appendChild(o);
+    });
+    var zoneSel = document.getElementById('newZone');
+    d.zones.forEach(function (z) {
+      var o = document.createElement('option'); o.value = z; o.textContent = z; zoneSel.appendChild(o);
+    });
+  }).withFailureHandler(function (err) { console.error('Cascading data load failed:', err); }).getCascadingMasterData();
+}
+
+function onNewStateChange_() {
+  var state = document.getElementById('newState').value;
+  var distSel = document.getElementById('newDistrict');
+  var cflSel = document.getElementById('newCfl');
+  distSel.innerHTML = '<option value="">-- District --</option>';
+  cflSel.innerHTML = '<option value="">-- CFL Name --</option>';
+  if (!CASCADE_DATA || !state) return;
+  (CASCADE_DATA.districtsByState[state] || []).forEach(function (d) {
+    var o = document.createElement('option'); o.value = d; o.textContent = d; distSel.appendChild(o);
+  });
+}
+
+function onNewDistrictChange_() {
+  var state = document.getElementById('newState').value;
+  var district = document.getElementById('newDistrict').value;
+  var cflSel = document.getElementById('newCfl');
+  cflSel.innerHTML = '<option value="">-- CFL Name --</option>';
+  if (!CASCADE_DATA || !state || !district) return;
+  var list = CASCADE_DATA.cflsByStateDistrict[state + '||' + district] || [];
+  list.forEach(function (c) {
+    var o = document.createElement('option'); o.value = c.name; o.textContent = c.name + ' (BCC ' + c.bccCode + ')'; cflSel.appendChild(o);
+  });
 }
 
 function addNewRow_() {
   var data = {
+    consultantId: document.getElementById('newConsultantId').value.trim(),
     name: document.getElementById('newName').value.trim(),
     designation: document.getElementById('newDesignation').value.trim(),
     state: document.getElementById('newState').value.trim(),
@@ -190,16 +248,20 @@ function addNewRow_() {
     email: document.getElementById('newEmail').value.trim().toLowerCase()
   };
   var statusEl = document.getElementById('newRowStatus');
-  if (!data.name || !data.cfl) {
-    statusEl.className = 'status err'; statusEl.textContent = 'Name aur CFL Name zaroori hai.';
+  if (!data.consultantId || !data.name || !data.cfl) {
+    statusEl.className = 'status err'; statusEl.textContent = 'Consultant ID, Name aur CFL Name zaroori hai.';
     return;
   }
   statusEl.className = 'status'; statusEl.textContent = 'Adding...';
   google.script.run.withSuccessHandler(function () {
     statusEl.className = 'status ok'; statusEl.textContent = '✅ Row add ho gayi.';
-    ['newName','newDesignation','newState','newDistrict','newZone','newCfl','newEmail'].forEach(function (id) {
+    ['newConsultantId','newName','newDesignation','newEmail'].forEach(function (id) {
       document.getElementById(id).value = '';
     });
+    document.getElementById('newState').value = '';
+    document.getElementById('newDistrict').innerHTML = '<option value="">-- District --</option>';
+    document.getElementById('newCfl').innerHTML = '<option value="">-- CFL Name --</option>';
+    document.getElementById('newZone').value = '';
     loadEmployees_();
   }).withFailureHandler(function (err) {
     statusEl.className = 'status err'; statusEl.textContent = 'Error: ' + (err.message || err);
@@ -214,6 +276,10 @@ function loadEditRequests_() {
 
 function renderRequests_(list) {
   var tb = document.getElementById('reqTbody');
+  var pendingCount = (list || []).filter(function (r) { return r.status === 'Pending'; }).length;
+  var badge = document.getElementById('pendingBadge');
+  if (pendingCount > 0) { badge.style.display = 'inline-block'; badge.textContent = pendingCount; }
+  else { badge.style.display = 'none'; }
   if (!list || !list.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">Koi request nahi hai.</td></tr>'; return; }
   tb.innerHTML = '';
   list.forEach(function (r) {

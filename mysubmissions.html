@@ -23,13 +23,9 @@
   .req-btn{background:#374151;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;}
   .req-status{font-size:11.5px;margin-top:6px;color:var(--gray);}
   .empty{color:var(--gray);padding:20px;text-align:center;}
-  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
-  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
-  .side-menu.open{transform:translateX(0);}
-  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;}
-  .side-menu a:hover{background:rgba(255,255,255,.08);}
-  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
-  .menu-overlay.open{display:block;}
+  .top-menu{position:sticky;top:0;left:0;right:0;background:#08427a;z-index:160;display:flex;flex-wrap:wrap;gap:4px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+  .top-menu a{display:inline-block;padding:8px 14px;color:#e8f0fb;text-decoration:none;font-size:12.5px;font-weight:600;border-radius:8px;}
+  .top-menu a:hover,.top-menu a.active{background:rgba(255,255,255,.15);}
 </style>
 
 <script src="api.js"></script>
@@ -46,15 +42,13 @@ if ('serviceWorker' in navigator) {
   <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
     <div style="font-size:32px;margin-bottom:8px;">🔒</div>
     <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Login Required</h2>
-    <input type="email" id="loginEmail" placeholder="aapka.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
+    <input type="text" id="loginEmail" placeholder="Consultant ID (ya Admin ka email)" autocomplete="off" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
     <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
     <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
   </div>
 </div>
 
-<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
-<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
-<div class="side-menu" id="sideMenu">
+<div class="top-menu" id="sideMenu">
   <a href="index.html">📋 Form Entry</a>
   <a href="mysubmissions.html">📄 My Submissions</a>
   <a href="#" onclick="logout_();return false;" style="color:#ffb4b4;">🚪 Logout</a>
@@ -63,17 +57,16 @@ if ('serviceWorker' in navigator) {
 <div class="wrap">
   <h1 id="pageTitle">📄 My Submissions</h1>
   <div class="sub" id="pageSub">Sirf aapke khud ke submissions yahan dikhte hain</div>
+  <div id="pendingSummary" style="display:none;"></div>
   <div id="list"><div class="empty">Loading...</div></div>
 </div>
 
 <script>
 var WEB_APP_URL = "index.html";
-function toggleMenu_() {
-  document.getElementById('sideMenu').classList.toggle('open');
-  document.getElementById('menuOverlay').classList.toggle('open');
-}
+function toggleMenu_() { /* no-op — menu is now a top bar, always visible */ }
 
 var myLoginId = '';
+var myOfficerName = '';
 var myIsAdmin = false;
 
 // ---------------------------------------------------------------------
@@ -103,6 +96,7 @@ function tryResumeSession_() {
   var sess = loadSession_();
   if (!sess) return false;
   myLoginId = sess.email;
+  myOfficerName = sess.officerName || '';
   myIsAdmin = !!sess.isAdmin;
   document.getElementById('loginGate').style.display = 'none';
   loadSubmissions_();
@@ -111,27 +105,64 @@ function tryResumeSession_() {
 tryResumeSession_();
 
 function doLogin_() {
-  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var consultantId = document.getElementById('loginEmail').value.trim();
   var errEl = document.getElementById('loginError');
-  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!pattern.test(email)) { errEl.textContent = 'Sahi email daalein.'; return; }
+  if (!consultantId) { errEl.textContent = 'Apna Consultant ID daalein.'; return; }
   errEl.style.color = '#6e7781';
   errEl.textContent = 'Verify ho raha hai...';
   google.script.run.withSuccessHandler(function (res) {
     if (!res || !res.ok) {
       errEl.style.color = '#cf222e';
-      errEl.textContent = 'Ye email registered nahi hai.';
+      errEl.textContent = 'Ye Consultant ID registered nahi hai.';
       return;
     }
-    myLoginId = email;
+    myLoginId = consultantId;
+    myOfficerName = res.name || '';
     myIsAdmin = !!res.isAdmin;
-    saveSession_({ email: email, isAdmin: !!res.isAdmin, officerName: res.name || '' });
+    saveSession_({ email: consultantId, isAdmin: !!res.isAdmin, officerName: res.name || '' });
     document.getElementById('loginGate').style.display = 'none';
     loadSubmissions_();
   }).withFailureHandler(function (err) {
     errEl.style.color = '#cf222e';
     errEl.textContent = 'Error: ' + (err.message || err);
-  }).checkLoginEmail(email);
+  }).checkLoginConsultantId(consultantId);
+}
+
+function renderPendingSummary_(list) {
+  var el = document.getElementById('pendingSummary');
+  if (!list || !list.length) { el.style.display = 'none'; return; }
+
+  var totalRed = 0, totalPending = 0, totalGreen = 0;
+  var cflsNeedingFollowUp = {};
+  list.forEach(function (s) {
+    totalRed += s.tatRed || 0;
+    totalPending += s.tatPending || 0;
+    totalGreen += s.tatGreen || 0;
+    if ((s.tatRed || 0) > 0 || (s.tatPending || 0) > 0) {
+      cflsNeedingFollowUp[s.cflName] = (cflsNeedingFollowUp[s.cflName] || 0) + (s.tatRed || 0) + (s.tatPending || 0);
+    }
+  });
+
+  if (totalRed === 0 && totalPending === 0) {
+    el.style.display = 'none';
+    return;
+  }
+
+  var cflListHtml = Object.keys(cflsNeedingFollowUp).slice(0, 6).map(function (name) {
+    return '<span style="display:inline-block;background:#fff;border:1px solid #f0c766;border-radius:6px;padding:3px 9px;margin:3px 4px 0 0;font-size:11.5px;">' +
+      esc_(name) + ' (' + cflsNeedingFollowUp[name] + ')</span>';
+  }).join('');
+
+  el.style.display = 'block';
+  el.style.cssText = 'display:block;background:#fff8e1;border:1px solid #f0c766;border-radius:10px;padding:14px 16px;margin-bottom:16px;';
+  el.innerHTML =
+    '<div style="font-weight:800;color:#7a5b00;font-size:14px;margin-bottom:8px;">⚠️ Aapke Pending Follow-ups (Next Meeting ke liye)</div>' +
+    '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px;">' +
+      '<div><b style="color:#cf222e;font-size:18px;">' + totalRed + '</b> <span style="font-size:12px;color:#6e7781;">Red (overdue)</span></div>' +
+      '<div><b style="color:#9a6700;font-size:18px;">' + totalPending + '</b> <span style="font-size:12px;color:#6e7781;">Pending (deadline ke andar)</span></div>' +
+      '<div><b style="color:#1a7f37;font-size:18px;">' + totalGreen + '</b> <span style="font-size:12px;color:#6e7781;">Green (complete)</span></div>' +
+    '</div>' +
+    (cflListHtml ? '<div style="font-size:11.5px;color:#7a5b00;margin-bottom:4px;">CFLs jinme follow-up baaki hai:</div><div>' + cflListHtml + '</div>' : '');
 }
 
 function loadSubmissions_() {
@@ -141,10 +172,11 @@ function loadSubmissions_() {
   }
   google.script.run.withSuccessHandler(renderList_).withFailureHandler(function (err) {
     document.getElementById('list').innerHTML = '<div class="empty">Error: ' + (err.message || err) + '</div>';
-  }).getMySubmissions(myLoginId, myIsAdmin);
+  }).getMySubmissions(myOfficerName, myIsAdmin);
 }
 
 function renderList_(list) {
+  renderPendingSummary_(list);
   var el = document.getElementById('list');
   if (!list || !list.length) { el.innerHTML = '<div class="empty">Abhi tak koi submission nahi hai.</div>'; return; }
   el.innerHTML = '';

@@ -47,7 +47,7 @@
   .kpi.amber .num{color:var(--amber);}
 
   .pie-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media (max-width:640px){ .pie-row{grid-template-columns:1fr;} }
+  @media (max-width:640px){ .pie-row{grid-template-columns:1fr;} .grading-row{grid-template-columns:1fr !important;} }
   .pie-block{display:flex;align-items:center;gap:14px;background:#fbfcfe;border:1px solid var(--border);border-radius:12px;padding:12px;}
   .pie-block svg{flex-shrink:0;}
   .pie-legend{font-size:11.5px;line-height:1.7;}
@@ -79,7 +79,7 @@
     .bar-chart-bar{width:34px;}
   }
   @media print {
-    .menu-toggle, .menu-overlay, .side-menu, #printBtn,
+    .top-menu, #printBtn,
     .toggle-row button:not(.active), .backlink { display: none !important; }
     body { background: #fff; }
     .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
@@ -88,13 +88,9 @@
 </style>
 
 <style>
-  .menu-toggle{position:fixed;top:14px;left:14px;z-index:150;background:#0b5cab;color:#fff;border:none;width:42px;height:42px;border-radius:10px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);}
-  .side-menu{position:fixed;top:0;left:0;bottom:0;width:230px;background:#08427a;z-index:160;transform:translateX(-100%);transition:transform .25s ease;padding:70px 0 20px;box-shadow:2px 0 12px rgba(0,0,0,.2);}
-  .side-menu.open{transform:translateX(0);}
-  .side-menu a{display:block;padding:14px 22px;color:#e8f0fb;text-decoration:none;font-size:14.5px;font-weight:600;border-left:3px solid transparent;}
-  .side-menu a:hover,.side-menu a.active{background:rgba(255,255,255,.08);border-left-color:#fff;}
-  .menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:155;display:none;}
-  .menu-overlay.open{display:block;}
+  .top-menu{position:sticky;top:0;left:0;right:0;background:#08427a;z-index:160;display:flex;flex-wrap:wrap;gap:4px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+  .top-menu a{display:inline-block;padding:8px 14px;color:#e8f0fb;text-decoration:none;font-size:12.5px;font-weight:600;border-radius:8px;}
+  .top-menu a:hover,.top-menu a.active{background:rgba(255,255,255,.15);}
 </style>
 
 <script src="api.js"></script>
@@ -117,9 +113,7 @@ if ('serviceWorker' in navigator) {
     <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
   </div>
 </div>
-<button class="menu-toggle" onclick="toggleMenu_()">☰</button>
-<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu_()"></div>
-<div class="side-menu" id="sideMenu">
+<div class="top-menu" id="sideMenu">
   <a href="home.html">🏠 Home</a>
   <a href="index.html">📋 Form Entry</a>
   <a href="mysubmissions.html">📄 My Submissions</a>
@@ -173,13 +167,17 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <div class="card">
-    <h2>Grading System <small>Number of visits by grade (A / B / C / D)</small></h2>
-    <div id="gradeBarChart"></div>
-  </div>
-
-  <div class="card">
-    <h2>CFL Grading Trend <small>Grade counts month-wise — kaise badal raha hai</small></h2>
-    <div id="gradeTrendChart"><div class="empty">Loading...</div></div>
+    <h2>Grading Overview <small>Grade distribution aur month-wise trend</small></h2>
+    <div class="grading-row" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:8px;">Grading System</div>
+        <div id="gradeBarChart"></div>
+      </div>
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:8px;">CFL Grading Trend</div>
+        <div id="gradeTrendChart"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -263,7 +261,7 @@ function renderKpis(s) {
     kpi(s.avgScorePct + '%', 'Avg Score %', '') +
     kpi(t.Green, 'TAT Green', 'green') +
     kpi(t.Red, 'TAT Red', 'red') +
-    kpi(t.Pending, 'TAT Pending', 'amber');
+    kpi(t.Pending, 'Pending Observations (Next Meeting)', 'amber');
 }
 function kpi(num, lbl, cls) {
   return '<div class="kpi ' + cls + '"><div class="num">' + num + '</div><div class="lbl">' + lbl + '</div></div>';
@@ -282,13 +280,12 @@ function renderIndicatorPies(stats) {
   for (var i = 0; i < stats.length; i += groupSize) groups.push(stats.slice(i, i + groupSize));
 
   c.innerHTML = '';
-  groups.forEach(function (g) {
+  groups.forEach(function (g, gi) {
     var wrap = document.createElement('div');
-    var firstSr = g[0].sr, lastSr = g[g.length - 1].sr;
     var barData = g.map(function (s, i) {
-      return { label: 'Sr' + s.sr + ' — ' + s.text, value: s.avgPct, color: distinctColor_(i) };
+      return { label: s.text, value: s.avgPct, color: distinctColor_(i) };
     });
-    wrap.innerHTML = '<div class="pie-title">Indicators Sr' + firstSr + '–' + lastSr + '</div>' + indicatorBarSvg_(barData);
+    wrap.innerHTML = '<div class="pie-title">Indicator Group ' + (gi + 1) + '</div>' + indicatorBarSvg_(barData);
     c.appendChild(wrap);
   });
 }
@@ -299,43 +296,50 @@ var PIE_PALETTE = ['#0b5cab', '#1a7f37', '#cf222e', '#9a6700', '#8250df', '#0969
   '#bf3989', '#1b7c83', '#c4380d', '#4a5568', '#2da44e', '#a40e26'];
 function distinctColor_(i) { return PIE_PALETTE[i % PIE_PALETTE.length]; }
 
-// Horizontal bar chart — one bar per indicator, showing the FULL heading
-// text as the label (wrapped across up to 2 lines if long).
+// Vertical bar chart — one column per indicator, full heading text
+// wrapped below each bar (no Sr numbers), each bar a distinct color.
 function indicatorBarSvg_(data) {
-  var rowH = 40, gap = 8, leftW = 190, chartW = 140, svgH = data.length * (rowH + gap);
+  var colW = 100, gap = 14, chartH = 130, topPad = 20, labelH = 56;
+  var totalW = data.length * (colW + gap);
+  var svgH = topPad + chartH + labelH;
   var maxVal = 100;
   var bars = '';
   data.forEach(function (d, i) {
-    var y = i * (rowH + gap);
-    var barW = Math.max(2, (d.value / maxVal) * chartW);
-    var lines = wrapText_(d.label, 30); // up to ~2 lines of ~30 chars each
-    lines.forEach(function (ln, li) {
-      bars += '<text x="' + (leftW - 8) + '" y="' + (y + rowH / 2 - (lines.length > 1 ? 6 : 0) + li * 13 + 4) +
-        '" text-anchor="end" font-size="10.5" fill="#374151">' + escXml_(ln) + '</text>';
-    });
-    bars += '<rect x="' + leftW + '" y="' + (y + rowH / 2 - 9) + '" width="' + chartW + '" height="18" fill="#f1f4f8" rx="4"></rect>';
-    bars += '<rect x="' + leftW + '" y="' + (y + rowH / 2 - 9) + '" width="' + barW + '" height="18" fill="' + d.color + '" rx="4"><title>' +
+    var x = i * (colW + gap) + gap / 2;
+    var barH = Math.max(2, (d.value / maxVal) * chartH);
+    var y = topPad + chartH - barH;
+    bars += '<rect x="' + x + '" y="' + topPad + '" width="' + colW + '" height="' + chartH + '" fill="#f1f4f8" rx="4"></rect>';
+    bars += '<rect x="' + x + '" y="' + y + '" width="' + colW + '" height="' + barH + '" fill="' + d.color + '" rx="4"><title>' +
       escXml_(d.label) + ': ' + d.value.toFixed(1) + '%</title></rect>';
-    bars += '<text x="' + (leftW + chartW + 8) + '" y="' + (y + rowH / 2 + 4) + '" font-size="11" font-weight="700" fill="#1f2328">' + d.value.toFixed(0) + '%</text>';
+    bars += '<text x="' + (x + colW / 2) + '" y="' + (y - 6) + '" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1f2328">' + d.value.toFixed(0) + '%</text>';
+    var lines = wrapText_(d.label, 20);
+    lines.slice(0, 3).forEach(function (ln, li) {
+      bars += '<text x="' + (x + colW / 2) + '" y="' + (topPad + chartH + 16 + li * 13) +
+        '" text-anchor="middle" font-size="10" fill="#374151">' + escXml_(ln) + '</text>';
+    });
   });
-  return '<svg viewBox="0 0 ' + (leftW + chartW + 40) + ' ' + svgH + '" width="100%" style="max-width:480px;height:auto;">' + bars + '</svg>';
+  return '<div style="overflow-x:auto;"><svg viewBox="0 0 ' + totalW + ' ' + svgH + '" width="' + Math.min(totalW, 420) + '" height="' + svgH + '">' + bars + '</svg></div>';
 }
 
 // Simple word-wrap for SVG text (SVG has no native wrapping) — splits into
-// at most 2 lines around maxChars, breaking on word boundaries.
+// up to 3 lines around maxChars, breaking on word boundaries.
 function wrapText_(text, maxChars) {
-  if (text.length <= maxChars) return [text];
   var words = text.split(' ');
-  var line1 = '', line2 = '';
+  var lines = []; var current = '';
   words.forEach(function (w) {
-    if ((line1 + ' ' + w).trim().length <= maxChars && !line2) {
-      line1 = (line1 + ' ' + w).trim();
+    if ((current + ' ' + w).trim().length <= maxChars) {
+      current = (current + ' ' + w).trim();
     } else {
-      line2 = (line2 + ' ' + w).trim();
+      if (current) lines.push(current);
+      current = w;
     }
   });
-  if (line2.length > maxChars) line2 = line2.substring(0, maxChars - 1) + '…';
-  return line2 ? [line1, line2] : [line1];
+  if (current) lines.push(current);
+  if (lines.length > 3) {
+    lines = lines.slice(0, 3);
+    lines[2] = lines[2].length > maxChars - 1 ? lines[2].substring(0, maxChars - 1) + '…' : lines[2] + '…';
+  }
+  return lines;
 }
 
 function escXml_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -433,10 +437,7 @@ function esc_(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</
 </script>
 
 <script>
-function toggleMenu_() {
-  document.getElementById('sideMenu').classList.toggle('open');
-  document.getElementById('menuOverlay').classList.toggle('open');
-}
+function toggleMenu_() { /* no-op — menu is now a top bar, always visible */ }
 </script>
 
 <script>
@@ -492,7 +493,7 @@ function doLogin_() {
   }).withFailureHandler(function (err) {
     errEl.style.color = '#cf222e';
     errEl.textContent = 'Error: ' + (err.message || err);
-  }).checkLoginEmail(email);
+  }).checkLoginConsultantId(email);
 }
 
 tryResumeSession_(true); // resumes an existing admin session, or leaves the login gate showing
