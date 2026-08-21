@@ -72,6 +72,8 @@ if ('serviceWorker' in navigator) {
     <button id="tabBtnRequests" class="tab-btn active" onclick="showTab_('requests')">📝 Edit Requests <span id="pendingBadge" style="display:none;background:#cf222e;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;">0</span></button>
     <button id="tabBtnEmployees" class="tab-btn" onclick="showTab_('employees')">👥 Employees <span style="font-weight:400;">/ कर्मचारी</span></button>
     <button id="tabBtnAdd" class="tab-btn" onclick="showTab_('add')">➕ New Officer <span style="font-weight:400;">/ नया अधिकारी</span></button>
+    <button id="tabBtnAdmins" class="tab-btn" onclick="showTab_('admins')">🔑 Admin Access <span style="font-weight:400;">/ एडमिन एक्सेस</span></button>
+    <button id="tabBtnCompliance" class="tab-btn" onclick="showTab_('compliance')">📋 Kaun Bhar Raha Hai <span style="font-weight:400;">/ अनुपालन</span></button>
   </div>
 
   <div id="tabPanelRequests" class="tab-panel">
@@ -124,6 +126,46 @@ if ('serviceWorker' in navigator) {
       <div class="status" id="newRowStatus"></div>
     </div>
   </div>
+
+  <div id="tabPanelAdmins" class="tab-panel" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">🔑 Admin Access De / Manage Karein <span style="font-weight:400;font-size:12.5px;color:#6e7781;">/ एडमिन एक्सेस दें</span></h2>
+      <div class="sub" style="margin-bottom:10px;">
+        Kisi ka email daal kar unhe Admin bana sakte hain — <b>Edit</b> (poori access,
+        sab kuch badal sakte hain) ya <b>View</b> (sirf dekh sakte hain, kuch approve/add/edit
+        nahi kar sakte).<br>
+        <span style="color:#9aa4b2;">किसी का ईमेल डालकर उन्हें एडमिन बना सकते हैं — Edit (पूरी access) या View (सिर्फ देख सकते हैं)</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <input id="newAdminEmail" type="email" placeholder="Email *" style="flex:1;min-width:200px;">
+        <select id="newAdminPermission" style="min-width:120px;">
+          <option value="Edit">Edit (full access)</option>
+          <option value="View">View (read-only)</option>
+        </select>
+        <button class="save-btn" onclick="addAdminUser_()">Add / Update</button>
+      </div>
+      <div class="status" id="adminUserStatus"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Email</th><th>Permission</th><th>Action</th></tr></thead>
+          <tbody id="adminUsersTbody"><tr><td colspan="3" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabPanelCompliance" class="tab-panel" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 10px;font-size:15px;color:#08427a;">📋 Is Mahine Kaun Bhar Raha Hai, Kaun Nahi <span style="font-weight:400;font-size:12.5px;color:#6e7781;">/ अनुपालन ट्रैकर</span></h2>
+      <div class="sub" style="margin-bottom:10px;">Sabhi Area Managers aur CBOs ki list — jo abhi tak nahi bhare, unhe seedha yahan se email reminder bhej sakte hain.</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Type</th><th>Is Mahine</th><th>Last Submission</th><th>Email</th><th>Action</th></tr></thead>
+          <tbody id="complianceTbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -150,13 +192,13 @@ function saveSession_(data) {
 }
 function logout_() {
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
-  if (WEB_APP_URL) { window.top.location.href = 'admin.html'; }
+  if (WEB_APP_URL) { window.top.location.href = 'admin.html?_r=' + Date.now(); }
   else { location.reload(); }
 }
 var currentTab = 'requests';
 function showTab_(tab) {
   currentTab = tab;
-  ['requests', 'employees', 'add'].forEach(function (t) {
+  ['requests', 'employees', 'add', 'admins', 'compliance'].forEach(function (t) {
     document.getElementById('tabPanel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === tab) ? 'block' : 'none';
     document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
   });
@@ -169,6 +211,8 @@ function tryResumeSession_() {
   loadEmployees_();
   loadEditRequests_();
   loadCascadingData_();
+  loadAdminUsers_();
+  loadCompliance_();
   return true;
 }
 tryResumeSession_();
@@ -191,6 +235,8 @@ function doLogin_() {
     loadEmployees_();
     loadEditRequests_();
     loadCascadingData_();
+    loadAdminUsers_();
+    loadCompliance_();
   }).withFailureHandler(function (err) {
     errEl.style.color = '#cf222e';
     errEl.textContent = 'Error: ' + (err.message || err);
@@ -234,6 +280,96 @@ function onNewDistrictChange_() {
   list.forEach(function (c) {
     var o = document.createElement('option'); o.value = c.name; o.textContent = c.name + ' (BCC ' + c.bccCode + ')'; cflSel.appendChild(o);
   });
+}
+
+function loadAdminUsers_() {
+  google.script.run.withSuccessHandler(renderAdminUsers_).withFailureHandler(function (err) {
+    document.getElementById('adminUsersTbody').innerHTML = '<tr><td colspan="3" class="empty">Error: ' + (err.message || err) + '</td></tr>';
+  }).getAdminUsersList();
+}
+
+function renderAdminUsers_(list) {
+  var tb = document.getElementById('adminUsersTbody');
+  if (!list || !list.length) { tb.innerHTML = '<tr><td colspan="3" class="empty">Abhi tak koi extra admin add nahi hai.</td></tr>'; return; }
+  tb.innerHTML = '';
+  list.forEach(function (a) {
+    var tr = document.createElement('tr');
+    var pillColor = a.permission === 'Edit' ? '#1a7f37' : '#9a6700';
+    tr.innerHTML =
+      '<td>' + esc_(a.email) + '</td>' +
+      '<td><span style="background:' + pillColor + ';color:#fff;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;">' + esc_(a.permission) + '</span></td>' +
+      '<td><button class="save-btn" style="background:#cf222e;" data-email="' + esc_(a.email) + '">Remove</button></td>';
+    tb.appendChild(tr);
+    tr.querySelector('button').addEventListener('click', function () { removeAdminUser_(a.email); });
+  });
+}
+
+function addAdminUser_() {
+  var email = document.getElementById('newAdminEmail').value.trim();
+  var permission = document.getElementById('newAdminPermission').value;
+  var statusEl = document.getElementById('adminUserStatus');
+  if (!email) { statusEl.className = 'status err'; statusEl.textContent = 'Email daalein.'; return; }
+  statusEl.className = 'status'; statusEl.textContent = 'Adding...';
+  google.script.run.withSuccessHandler(function () {
+    statusEl.className = 'status ok'; statusEl.textContent = '✅ Admin access de diya.';
+    document.getElementById('newAdminEmail').value = '';
+    loadAdminUsers_();
+    loadCompliance_();
+  }).withFailureHandler(function (err) {
+    statusEl.className = 'status err'; statusEl.textContent = 'Error: ' + (err.message || err);
+  }).adminAddAdminUser(email, permission);
+}
+
+function removeAdminUser_(email) {
+  if (!confirm(email + ' ki Admin access hataani hai?')) return;
+  google.script.run.withSuccessHandler(function () {
+    loadAdminUsers_();
+    loadCompliance_();
+  }).withFailureHandler(function (err) {
+    alert('Error: ' + (err.message || err));
+  }).adminRemoveAdminUser(email);
+}
+
+function loadCompliance_() {
+  google.script.run.withSuccessHandler(renderCompliance_).withFailureHandler(function (err) {
+    document.getElementById('complianceTbody').innerHTML = '<tr><td colspan="6" class="empty">Error: ' + (err.message || err) + '</td></tr>';
+  }).getComplianceTracker();
+}
+
+function renderCompliance_(list) {
+  var tb = document.getElementById('complianceTbody');
+  if (!list || !list.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">Koi officer/CBO nahi mila.</td></tr>'; return; }
+  tb.innerHTML = '';
+  list.forEach(function (p) {
+    var tr = document.createElement('tr');
+    var statusHtml = p.submittedThisMonth ?
+      '<span style="color:#1a7f37;font-weight:700;">✅ ' + p.thisMonthCount + ' bhare</span>' :
+      '<span style="color:#cf222e;font-weight:700;">❌ Nahi bhara</span>';
+    var actionHtml = p.submittedThisMonth ? '' :
+      (p.email ?
+        '<button class="save-btn" data-email="' + esc_(p.email) + '" data-name="' + esc_(p.name) + '">📧 Reminder Bhejein</button>' :
+        '<span style="font-size:11px;color:#9aa4b2;">Email nahi hai</span>');
+    tr.innerHTML =
+      '<td>' + esc_(p.name) + '</td>' +
+      '<td>' + esc_(p.type) + '</td>' +
+      '<td>' + statusHtml + '</td>' +
+      '<td>' + esc_(p.lastSubmission || '-') + '</td>' +
+      '<td>' + esc_(p.email || '-') + '</td>' +
+      '<td>' + actionHtml + '</td>';
+    tb.appendChild(tr);
+    var btn = tr.querySelector('button');
+    if (btn) btn.addEventListener('click', function () { sendReminder_(p.email, p.name, btn); });
+  });
+}
+
+function sendReminder_(email, name, btn) {
+  btn.disabled = true; btn.textContent = 'Bhej rahe hain...';
+  google.script.run.withSuccessHandler(function () {
+    btn.textContent = '✅ Bhej diya';
+  }).withFailureHandler(function (err) {
+    btn.disabled = false; btn.textContent = '📧 Reminder Bhejein';
+    alert('Error: ' + (err.message || err));
+  }).sendComplianceReminder(email, name);
 }
 
 function addNewRow_() {

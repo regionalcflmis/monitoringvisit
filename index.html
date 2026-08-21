@@ -164,23 +164,28 @@ if ('serviceWorker' in navigator) {
   <a href="admin.html">⚙️ Admin Panel</a>
   <a href="#" onclick="logout_();return false;" style="color:#ffb4b4;">🚪 Logout</a>
 </div>
-<div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
-    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-    <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Login Required</h2>
-    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Aage badhne ke liye apna Consultant ID daalein (Admin apna email daalein)</div>
-    <input type="text" id="loginEmail" placeholder="Consultant ID (ya Admin ka email)" autocomplete="off" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
-    <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
-    <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login &amp; Continue</button>
-
-    <div id="noEmailToggle" style="margin-top:14px;font-size:12px;">
-      <a href="#" onclick="showNoEmailLogin_();return false;" style="color:#6e7781;text-decoration:underline;">Consultant ID nahi pata? Yahan click karein</a>
+<div id="loginGate" style="position:fixed;inset:0;background:linear-gradient(135deg,rgba(8,66,122,.92),rgba(11,92,171,.88));z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:18px;padding:0;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#0b5cab,#08427a);padding:32px 24px 26px;">
+      <div style="width:64px;height:64px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:30px;">🔐</div>
+      <h2 style="margin:0 0 4px;color:#fff;font-size:19px;font-weight:800;">MoneyWise CFL Monitoring</h2>
+      <div style="font-size:12px;color:#c9ddf5;">Login zaroori hai aage badhne ke liye</div>
     </div>
-    <div id="noEmailBox" style="display:none;margin-top:12px;padding-top:14px;border-top:1px solid #eee;text-align:left;">
-      <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Apna naam select karein</label>
-      <select id="exemptName" style="width:100%;padding:10px;border:1px solid #d8dee4;border-radius:8px;font-size:14px;margin-bottom:10px;"><option value="">-- Naam select karein --</option></select>
-      <button onclick="doExemptLogin_()" style="width:100%;padding:12px;background:#374151;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">Continue without email</button>
-      <div style="font-size:11px;color:#9aa7b5;margin-top:8px;">Sirf un officers ke liye kaam karega jinhe admin ne "bina email" allow kiya hai.</div>
+    <div style="padding:26px 24px 24px;">
+      <div style="font-size:12.5px;color:#6e7781;margin-bottom:16px;">Consultant ID <b>YA</b> Email — dono se login kar sakte hain<br><span style="color:#9aa4b2;">(Admin apna email daalein)</span></div>
+      <input type="text" id="loginEmail" placeholder="Consultant ID ya Email" autocomplete="off" style="width:100%;padding:13px 14px;border:1.5px solid #dde3ea;border-radius:10px;font-size:15px;margin-bottom:12px;box-sizing:border-box;transition:border-color .15s;" onfocus="this.style.borderColor='#0b5cab'" onblur="this.style.borderColor='#dde3ea'">
+      <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+      <button onclick="doLogin_()" style="width:100%;padding:14px;background:linear-gradient(135deg,#0b5cab,#08427a);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 4px 14px rgba(11,92,171,.35);transition:transform .1s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">Login &amp; Continue →</button>
+
+      <div id="noEmailToggle" style="margin-top:16px;font-size:12px;">
+        <a href="#" onclick="showNoEmailLogin_();return false;" style="color:#6e7781;text-decoration:underline;">Consultant ID nahi pata? Yahan click karein</a>
+      </div>
+      <div id="noEmailBox" style="display:none;margin-top:14px;padding-top:16px;border-top:1px solid #eee;text-align:left;">
+        <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Apna naam select karein</label>
+        <select id="exemptName" style="width:100%;padding:11px;border:1.5px solid #dde3ea;border-radius:10px;font-size:14px;margin-bottom:10px;"><option value="">-- Naam select karein --</option></select>
+        <button onclick="doExemptLogin_()" style="width:100%;padding:12px;background:#374151;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Continue without email</button>
+        <div style="font-size:11px;color:#9aa7b5;margin-top:8px;">Sirf un officers ke liye kaam karega jinhe admin ne "bina email" allow kiya hai.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -196,6 +201,7 @@ if ('serviceWorker' in navigator) {
   </div>
   <div class="sub" id="loggedInUserBar" style="font-size:11.5px;"></div>
   <div id="approvedEditBanner" style="display:none;background:#fff8e1;border:1px solid #f0c766;color:#7a5b00;padding:10px 14px;border-radius:8px;font-size:12.5px;margin-bottom:10px;"></div>
+  <div id="draftBanner" style="display:none;background:#e8f0fb;border:1px solid #8fb8e8;color:#08427a;padding:10px 14px;border-radius:8px;font-size:12.5px;margin-bottom:10px;"></div>
   <div id="editModeBanner" style="display:none;background:#e8f0fb;border:1px solid #8fb8e8;color:#08427a;padding:10px 14px;border-radius:8px;font-size:12.5px;font-weight:700;margin-bottom:10px;">✏️ Edit Mode — Submission <span id="editModeSubmissionId"></span> ko update kar rahe hain (naya submission nahi banega)</div>
 
   <div class="toggle-row">
@@ -446,7 +452,7 @@ function loadSession_() {
 function logout_() {
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   loggedInEmail = ''; isAdmin = false; loggedInOfficerName = '';
-  if (WEB_APP_URL) { window.top.location.href = 'index.html'; }
+  if (WEB_APP_URL) { window.top.location.href = 'index.html?_r=' + Date.now(); }
   else { location.reload(); }
 }
 
@@ -463,6 +469,7 @@ function tryResumeSession_() {
   applyRoleVisibility_();
   applyCflScope_();
   checkForApprovedEdit_();
+  checkForDraft_();
   loadBottomSubmissionsList_();
   return true;
 }
@@ -592,10 +599,11 @@ function startEditSubmission_(submissionId, reportType, requestRow) {
 function applyRoleVisibility_() {
   document.querySelectorAll('.top-menu a').forEach(function (a) {
     var href = a.getAttribute('href') || '';
-    var isAdminOnly = href.indexOf('dashboard') > -1 || href.indexOf('page=dashboard') > -1 ||
-      href.indexOf('home') > -1 || href.indexOf('page=home') > -1 ||
+    var isAdminOnly = href.indexOf('home') > -1 || href.indexOf('page=home') > -1 ||
       href.indexOf('admin') > -1 || href.indexOf('page=admin') > -1;
     if (isAdminOnly) a.style.display = isAdmin ? 'block' : 'none';
+    // Dashboard is now visible to everyone — AM/CBO get their own
+    // personalized (auto-filtered) view, Admin sees everything.
   });
 }
 
@@ -639,6 +647,7 @@ function doExemptLogin_() {
     applyRoleVisibility_();
     applyCflScope_();
   checkForApprovedEdit_();
+  checkForDraft_();
   loadBottomSubmissionsList_();
   }).withFailureHandler(function (err) {
     errEl.style.color = '#cf222e';
@@ -674,6 +683,7 @@ function doLogin_() {
     applyRoleVisibility_();
     applyCflScope_();
   checkForApprovedEdit_();
+  checkForDraft_();
   loadBottomSubmissionsList_();
   }).withFailureHandler(function (err) {
     btn.disabled = false;
@@ -754,7 +764,7 @@ function reloadForm_() {
   // Apps Script serves this page inside a sandboxed iframe — a plain
   // location.reload() reloads that sandbox's temp URL and shows a blank
   // page. Navigating window.top to the real web app URL reloads properly.
-  if (WEB_APP_URL) { window.top.location.href = 'index.html'; }
+  if (WEB_APP_URL) { window.top.location.href = 'index.html?_r=' + Date.now(); }
   else { location.reload(); }
 }
 var reportType = 'CFL';
@@ -1122,7 +1132,114 @@ function removePhoto(i) { photos.splice(i, 1); renderThumbs(); }
 // ---------------------------------------------------------------------
 // Submit
 // ---------------------------------------------------------------------
+var submitInProgress = false;
+var currentSubmitToken = 'tok_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+var DRAFT_KEY_PREFIX = 'cfl_draft_';
+
+// If an entry can't be completed (connection drops, phone locks, browser
+// closes, etc.), everything typed so far is saved as a DRAFT — the
+// officer can pick up exactly where they left off next time they log in,
+// instead of losing their work and starting over.
+function draftKey_() {
+  return DRAFT_KEY_PREFIX + (loggedInEmail || 'anon');
+}
+
+function saveDraft_() {
+  if (!loggedInEmail) return;
+  try {
+    var scores = {}, obs = {}, sug = {}, tl = {};
+    document.querySelectorAll('[data-kind="score"]').forEach(function (el) { scores[el.getAttribute('data-sr')] = el.value; });
+    document.querySelectorAll('[data-kind="observation"]').forEach(function (el) { obs[el.getAttribute('data-sr')] = el.value; });
+    document.querySelectorAll('[data-kind="suggestion"]').forEach(function (el) { sug[el.getAttribute('data-sr')] = el.value; });
+    document.querySelectorAll('[data-kind="timeline"]').forEach(function (el) { tl[el.getAttribute('data-sr')] = el.value; });
+
+    var draft = {
+      reportType: reportType,
+      bccCode: (document.getElementById('bccCode') || {}).value || '',
+      visitDate: (document.getElementById('visitDate') || {}).value || '',
+      officerName: (document.getElementById('officerName') || {}).value || '',
+      consultantDesignation: (document.getElementById('consultantDesignation') || {}).value || '',
+      sessionObserver: (document.getElementById('sessionObserver') || {}).value || '',
+      sessionType: (document.getElementById('sessionType') || {}).value || '',
+      sessionVenue: (document.getElementById('sessionVenue') || {}).value || '',
+      scores: scores, observations: obs, suggestions: sug, timelines: tl,
+      submitToken: currentSubmitToken,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(draftKey_(), JSON.stringify(draft));
+  } catch (e) { /* draft-saving must never break the form */ }
+}
+
+function clearDraft_() {
+  try { localStorage.removeItem(draftKey_()); } catch (e) {}
+}
+
+function checkForDraft_() {
+  if (!loggedInEmail) return;
+  try {
+    var raw = localStorage.getItem(draftKey_());
+    if (!raw) return;
+    var draft = JSON.parse(raw);
+    var bar = document.getElementById('draftBanner');
+    if (!bar) return;
+    var savedTime = draft.savedAt ? new Date(draft.savedAt).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : '';
+    bar.style.display = 'block';
+    bar.innerHTML = '📝 Aapka ek adhoora (incomplete) entry mila hai (' + savedTime + ' ka) — ' +
+      '<a href="#" onclick="restoreDraft_();return false;" style="color:#08427a;font-weight:800;">Yahan se resume karein</a> ' +
+      '&nbsp;·&nbsp; <a href="#" onclick="clearDraft_();document.getElementById(\'draftBanner\').style.display=\'none\';return false;" style="color:#cf222e;">Discard karein</a>';
+  } catch (e) { /* fine — draft just won't show */ }
+}
+
+function restoreDraft_() {
+  try {
+    var raw = localStorage.getItem(draftKey_());
+    if (!raw) return;
+    var draft = JSON.parse(raw);
+    document.getElementById('draftBanner').style.display = 'none';
+
+    setReportType(draft.reportType || 'CFL');
+    if (draft.bccCode) { document.getElementById('bccCode').value = draft.bccCode; onBccChange(); }
+    if (draft.visitDate) document.getElementById('visitDate').value = draft.visitDate;
+    if (draft.officerName) { document.getElementById('officerName').value = draft.officerName; onOfficerChange(); }
+    if (draft.consultantDesignation) document.getElementById('consultantDesignation').value = draft.consultantDesignation;
+    if (draft.sessionObserver) document.getElementById('sessionObserver').value = draft.sessionObserver;
+    if (draft.sessionType) document.getElementById('sessionType').value = draft.sessionType;
+    if (draft.sessionVenue) document.getElementById('sessionVenue').value = draft.sessionVenue;
+
+    setTimeout(function () {
+      Object.keys(draft.scores || {}).forEach(function (sr) {
+        var el = document.querySelector('[data-kind="score"][data-sr="' + sr + '"]');
+        if (el && draft.scores[sr]) el.value = draft.scores[sr];
+      });
+      Object.keys(draft.observations || {}).forEach(function (sr) {
+        var el = document.querySelector('[data-kind="observation"][data-sr="' + sr + '"]');
+        if (el) el.value = draft.observations[sr] || '';
+      });
+      Object.keys(draft.suggestions || {}).forEach(function (sr) {
+        var el = document.querySelector('[data-kind="suggestion"][data-sr="' + sr + '"]');
+        if (el) el.value = draft.suggestions[sr] || '';
+      });
+      Object.keys(draft.timelines || {}).forEach(function (sr) {
+        var el = document.querySelector('[data-kind="timeline"][data-sr="' + sr + '"]');
+        if (el) el.value = draft.timelines[sr] || '';
+      });
+    }, 300); // small delay so renderItems() from setReportType/onBccChange finishes first
+
+    if (draft.submitToken) currentSubmitToken = draft.submitToken; // keep the SAME token so a later duplicate-check still works correctly
+  } catch (e) {
+    alert('Draft restore nahi ho paya: ' + e.message);
+  }
+}
+
+// Auto-save every 15 seconds while the officer is filling the form, plus
+// on every field change — so almost nothing is ever lost.
+setInterval(saveDraft_, 15000);
+document.addEventListener('input', function (e) {
+  if (e.target && e.target.closest && e.target.closest('#itemsContainer')) saveDraft_();
+});
+
 function doSubmit() {
+  if (submitInProgress) return; // blocks double-click / accidental double-submit
   var status = document.getElementById('statusMsg');
   status.className = 'msg'; status.textContent = '';
 
@@ -1163,6 +1280,7 @@ function doSubmit() {
   }
 
   document.getElementById('submitBtn').disabled = true;
+  submitInProgress = true;
   proceedWithSubmit_(cflName, visitDate, officerName, officerDesignation, signOffName, status);
 }
 
@@ -1216,6 +1334,7 @@ function proceedWithSubmit_(cflName, visitDate, officerName, officerDesignation,
   getLocation_(function (loc) {
     if (!loc) {
       document.getElementById('submitBtn').disabled = false;
+      submitInProgress = false;
       status.className = 'msg err';
       status.textContent = '❌ Location permission zaroori hai. Browser address bar ke 🔒/ⓘ icon se "Location" ko "Allow" karke dobara try karein.';
       return;
@@ -1226,6 +1345,7 @@ function proceedWithSubmit_(cflName, visitDate, officerName, officerDesignation,
       status.textContent = 'Report generate ho raha hai (PDF + Excel) aur email bheja ja raha hai...';
       var payload = {
         reportType: reportType,
+        clientToken: currentSubmitToken,
         cflName: cflName, bccCode: document.getElementById('bccCode').value,
         district: document.getElementById('district').value, state: document.getElementById('state').value,
         bankName: document.getElementById('bankName').value, phase: document.getElementById('phase').value,
@@ -1254,6 +1374,7 @@ function proceedWithSubmit_(cflName, visitDate, officerName, officerDesignation,
         .submitReport(payload);
     }, status, function (msg) {
       document.getElementById('submitBtn').disabled = false;
+      submitInProgress = false;
       status.className = 'msg err';
       status.textContent = '❌ ' + msg;
     }, officerName, cflName);
@@ -1292,7 +1413,9 @@ function uploadAllPhotos_(cb, status, onError, officerName, cflName) {
 }
 
 function onSubmitSuccess(res) {
+  clearDraft_();
   document.getElementById('submitBtn').disabled = false;
+      submitInProgress = false;
   document.getElementById('statusMsg').className = 'msg ok';
   document.getElementById('statusMsg').textContent = '✅ Data submitted successfully.';
   document.getElementById('previewSummary').innerHTML = '<b>✅ Data submitted successfully.</b>';
@@ -1320,6 +1443,7 @@ function startAutoRefreshCountdown_(seconds) {
 
 function onSubmitError(err) {
   document.getElementById('submitBtn').disabled = false;
+      submitInProgress = false;
   document.getElementById('statusMsg').className = 'msg err';
   document.getElementById('statusMsg').textContent = 'Error: ' + (err.message || err);
 }

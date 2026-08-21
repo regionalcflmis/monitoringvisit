@@ -103,14 +103,19 @@ if ('serviceWorker' in navigator) {
 </script>
 </head>
 <body>
-<div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25);">
-    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-    <h2 style="margin:0 0 6px;color:#08427a;font-size:18px;">Admin Login</h2>
-    <div style="font-size:12.5px;color:#6e7781;margin-bottom:18px;">Dashboard sirf admin ke liye hai — apna email daalein</div>
-    <input type="email" id="loginEmail" placeholder="admin.email@example.com" autocomplete="email" style="width:100%;padding:12px;border:1px solid #d8dee4;border-radius:8px;font-size:15px;margin-bottom:10px;box-sizing:border-box;">
-    <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
-    <button onclick="doLogin_()" style="width:100%;padding:13px;background:#0b5cab;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14.5px;cursor:pointer;">Login</button>
+<div id="loginGate" style="position:fixed;inset:0;background:linear-gradient(135deg,rgba(8,66,122,.92),rgba(11,92,171,.88));z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:18px;padding:0;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#0b5cab,#08427a);padding:32px 24px 26px;">
+      <div style="width:64px;height:64px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:30px;">📊</div>
+      <h2 style="margin:0 0 4px;color:#fff;font-size:19px;font-weight:800;">Dashboard Login</h2>
+      <div style="font-size:12px;color:#c9ddf5;">Apna data dekhne ke liye login karein</div>
+    </div>
+    <div style="padding:26px 24px 24px;">
+      <div style="font-size:12.5px;color:#6e7781;margin-bottom:16px;">Admin sabka data dekhega, aap apna hi data dekhenge</div>
+      <input type="text" id="loginEmail" placeholder="Consultant ID ya Email" autocomplete="off" style="width:100%;padding:13px 14px;border:1.5px solid #dde3ea;border-radius:10px;font-size:15px;margin-bottom:12px;box-sizing:border-box;" onfocus="this.style.borderColor='#0b5cab'" onblur="this.style.borderColor='#dde3ea'">
+      <div id="loginError" style="color:#cf222e;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+      <button onclick="doLogin_()" style="width:100%;padding:14px;background:linear-gradient(135deg,#0b5cab,#08427a);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 4px 14px rgba(11,92,171,.35);">Login &amp; Continue →</button>
+    </div>
   </div>
 </div>
 <div class="top-menu" id="sideMenu">
@@ -462,33 +467,64 @@ function saveSession_(data) {
 }
 function logout_() {
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
-  if (WEB_APP_URL) { window.top.location.href = 'dashboard.html'; }
+  if (WEB_APP_URL) { window.top.location.href = 'dashboard.html?_r=' + Date.now(); }
   else { location.reload(); }
 }
+var dashViewerIsAdmin = false;
+var dashViewerOfficerName = '';
+
+function applyRoleVisibility_() {
+  document.querySelectorAll('.top-menu a').forEach(function (a) {
+    var href = a.getAttribute('href') || '';
+    var isAdminOnly = href.indexOf('page=home') > -1 || href.indexOf('page=admin') > -1;
+    if (isAdminOnly) a.style.display = dashViewerIsAdmin ? 'inline-block' : 'none';
+  });
+}
+
+function applyNonAdminLock_() {
+  if (dashViewerIsAdmin) return;
+  // A non-admin (AM/CBO) sees ONLY their own data — the filter is locked
+  // to their name and the dropdowns are hidden (nothing else to pick).
+  currentFilters.officerName = dashViewerOfficerName;
+  var filterCard = document.getElementById('filterOfficer');
+  if (filterCard) {
+    var wrap = filterCard.closest('.card');
+    if (wrap) wrap.style.display = 'none';
+  }
+  var titleEl = document.querySelector('h1');
+  if (titleEl) titleEl.textContent = '📊 Mera Dashboard (' + dashViewerOfficerName + ')';
+}
+
 function tryResumeSession_(requireAdmin) {
   var sess = loadSession_();
   if (!sess) return false;
-  if (requireAdmin && !sess.isAdmin) return false;
+  dashViewerIsAdmin = !!sess.isAdmin;
+  dashViewerOfficerName = sess.officerName || '';
   document.getElementById('loginGate').style.display = 'none';
+  applyRoleVisibility_();
+  applyNonAdminLock_();
   load('CFL');
   return true;
 }
 
 function doLogin_() {
-  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var email = document.getElementById('loginEmail').value.trim();
   var errEl = document.getElementById('loginError');
-  var pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!pattern.test(email)) { errEl.textContent = 'Sahi email daalein.'; return; }
+  if (!email) { errEl.textContent = 'Consultant ID ya Email daalein.'; return; }
   errEl.style.color = '#6e7781';
   errEl.textContent = 'Verify ho raha hai...';
   google.script.run.withSuccessHandler(function (res) {
-    if (!res || !res.ok || !res.isAdmin) {
+    if (!res || !res.ok) {
       errEl.style.color = '#cf222e';
-      errEl.textContent = 'Dashboard sirf admin ke liye hai. Aap Form Entry use karein.';
+      errEl.textContent = 'Ye registered nahi hai.';
       return;
     }
+    dashViewerIsAdmin = !!res.isAdmin;
+    dashViewerOfficerName = res.name || '';
     saveSession_({ email: email, isAdmin: !!res.isAdmin, officerName: res.name || '' });
     document.getElementById('loginGate').style.display = 'none';
+    applyRoleVisibility_();
+    applyNonAdminLock_();
     load('CFL');
   }).withFailureHandler(function (err) {
     errEl.style.color = '#cf222e';
@@ -496,7 +532,7 @@ function doLogin_() {
   }).checkLoginConsultantId(email);
 }
 
-tryResumeSession_(true); // resumes an existing admin session, or leaves the login gate showing
+tryResumeSession_(); // resumes an existing session (admin sees everything, AM/CBO see only their own data)
 </script>
 </body>
 </html>

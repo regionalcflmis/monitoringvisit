@@ -119,7 +119,7 @@ function saveSession_(data) {
 }
 function logout_() {
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
-  if (WEB_APP_URL) { window.top.location.href = 'home.html'; }
+  if (WEB_APP_URL) { window.top.location.href = 'home.html?_r=' + Date.now(); }
   else { location.reload(); }
 }
 function tryResumeSession_() {
